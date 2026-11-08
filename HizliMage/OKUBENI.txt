@@ -1,0 +1,59 @@
+HIZLI MAGE v2.0 — Horde 1-60 görev-görev hızlı kasma rehberi (WoW Forever)
+=========================================================================
+
+Üç karakter için tek paket: Eos (Orc mage), Kael (Tauren druid), Thalor (Skyborne warrior).
+Eklenti giriş yapan karakterin sınıfına göre rotayı kendisi seçer.
+
+KURULUM
+-------
+Klasörü şuraya kopyala (zaten buradaysa dosyaların üzerine yaz):
+  C:\World of Warcraft\_forever_\Interface\AddOns\HizliMage\
+Oyun içinde: /reload (ya da giriş ekranında AddOns listesinde "Hizli Mage" işaretli olsun).
+
+NE DEĞİŞTİ (v2.0)
+-----------------
+- Rota artık hub notları değil, görev-görev adımlardan oluşur (yaklaşık 1300 adım, 430-490 görev).
+  Adımlar QuestieDB'nin Forever verisinden üretildi: Zephras Isle, Forever'ın yeni görevleri ve
+  klasik Horde görevleri dahil. Riverglades'in görev verisi henüz yok; o bölge nota olarak geçer.
+- Adım türleri: [Git] bölgeye var, [Uçuş] uçuş noktasını al, [Hearth] hancıya bağla, [Eğitmen],
+  [Al] görevleri al, [Yap] hedefleri bitir, [Teslim] teslim et, [Kas] seviyeye kadar kas.
+- Adımlar kendiliğinden geçer: görevi alınca [Al], hedefler bitince [Yap], teslim edince [Teslim],
+  seviye gelince [Kas], bölgeye girince [Git], uçuş haritası açılınca [Uçuş], hearth bağlanınca [Hearth].
+- Daha önce bitirdiğin görevler ekrana gelmez: giriş yaparken seviyene ve tamamlanmış görevlerine göre
+  doğru adıma yerleşir; aradaki bitmiş görevlerin adımları atlanır. Bir görevi NPC vermiyorsa (ön koşul,
+  seviye) Tamam'a bas: o görevin hedef ve teslim adımları da kendiliğinden atlanır.
+- Otomatik görev alma yalnızca rotadaki görevleri alır; rota dışı görevi istersen elle tıklarsın.
+- Etkileşim tuşu: /hm tus F  →  F tuşu "Interact With Target" olur, yakındaki NPC/nesneyle hedef
+  almadan konuşursun (yumuşak hedefleme ayarlarını da açar).
+- Pencerede sıradaki 3 adım gri görünür; [Yap] adımında görev hedeflerinin sayacı yazılır.
+
+KOMUTLAR
+--------
+/hm                 pencereyi aç/kapat          /hm ok          yön okunu aç/kapat
+/hm ileri | geri    adım değiştir               /hm tamam       adımı bitir / atla
+/hm adim 120        120. adıma git              /hm gorev 843   görev kimliğinin adımına git
+/hm bolum           bölüm listesi (adım no)     /hm kas         seviyene uygun kasma noktası
+/hm tus F           etkileşim tuşunu F yap      /hm egitmen     en yakın sınıf eğitmeni
+/hm zindan          seviyene uygun zindanlar    /hm oto         otomatik görev al/teslim et
+/hm sat | tamir     gri eşya sat / tamir        /hm egitim      akıllı büyü satın alma
+/hm atla Scorch     büyüyü atlama listesine     /hm hedef 100   binek altın hedefi
+/hm su 10           minimum su                  /hm bez         60 için bez stoku
+/hm talent          talent önerisi              /hm rank        bardaki eski rank'lar
+/hm canta           çantadaki en değersiz eşya  /hm harita      Blizzard harita işareti
+/hm ascii           Türkçe harf sorunu için     /hm boyut 0.9   pencere ölçeği
+/hm sifirla         konum ve adımı sıfırla      /hm debug       hata ayıklama
+
+İPUÇLARI
+--------
+- Shift basılıyken otomatik görev alma devre dışıdır (ödül seçmek ya da bir görevi almamak için).
+- Başlığa tıklarsan ok tekrar adımın hedefine döner; "Kas" oku kasma noktasına çevirir.
+- Rota tahmini seviyeyle üretildi; görevler sarı/kırmızı kalıyorsa [Kas] adımındaki yere git ya da
+  bir önceki bölgenin kalan görevlerini yap.
+- Rotayı değiştirmek istersen: rota dosyaları (Route_MAGE.lua vb.) üretilmiş veridir; isteğin
+  üzerine yeniden üretilir.
+
+ÖNERİLEN EKLENTİ PAKETİ (Forever uyumlu sürümlerini kur)
+--------------------------------------------------------
+Zorunlu:   HizliMage (bu), Questie (Forever), Auctionator, AtlasLoot Classic Forever
+Rahatlık:  Bagnon, Details!, Leatrix Plus (Forever), Dialogue UI, MapUtils, What's Training
+Arayüz:    EllesmereUI (tam paket, Forever için) ya da ElvUI Forever (Tukui'den) + Plater (isim plakası)
