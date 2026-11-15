@@ -81,6 +81,62 @@ function Menu:SetRested(on, verbose)
 end
 
 ---------------------------------------------------------------------------
+-- Oyuncu adları sınıf renginde: oyunun "dost oyuncu isim plakaları" ayarı
+-- (nameplateShowFriendlyPlayers; eski istemcilerde nameplateShowFriends). Açıkken
+-- çevredeki oyuncuların adı sınıf renginde çizilir. EllesmereUI bunu eskiden her
+-- girişte açardı; yeni sürümü ayarı kullanıcıya bırakıyor, ayar kapalı kalırsa
+-- kimin hangi sınıf olduğu görünmez. Buradan açılırsa seçim hatırlanır ve girişte
+-- ayar kapalı bulunursa yeniden açılır.
+---------------------------------------------------------------------------
+local FRIENDLY_VIS = { "nameplateShowFriendlyPlayers", "nameplateShowFriends" }
+
+local function friendlyVisCVar()
+    if not GetCVar then return nil end
+    for _, n in ipairs(FRIENDLY_VIS) do
+        local ok, v = pcall(GetCVar, n)
+        if ok and v ~= nil then return n, v end
+    end
+    return nil
+end
+
+-- true / false; ayar bu istemcide yoksa nil
+function Menu:ClassNamesState()
+    local name, v = friendlyVisCVar()
+    if not name then return nil end
+    return v == "1" or v == 1
+end
+
+function Menu:SetClassNames(on, verbose)
+    local name = friendlyVisCVar()
+    if not name then
+        if verbose then HM:Print("Bu istemcide dost oyuncu isim plakası ayarı bulunamadı.") end
+        return false
+    end
+    if InCombatLockdown and InCombatLockdown() then
+        HM:Print("Savaşta isim plakası ayarı değiştirilemez; savaş bitince yeniden dene.")
+        return false
+    end
+    if on == nil then on = not self:ClassNamesState() end
+    local set = (C_CVar and C_CVar.SetCVar) or SetCVar
+    if not set then return false end
+    local ok, err = pcall(set, name, on and "1" or "0")
+    if not ok then
+        HM:LogError("sınıf renkli adlar", err)
+        return false
+    end
+    if on then
+        -- sınıf rengi ayarı kapalıysa onu da aç (adın renkli çıkması buna bağlı)
+        local okc, cur = pcall(GetCVar, "nameplateUseClassColorForFriendlyPlayerUnitNames")
+        if okc and cur ~= nil and cur ~= "1" then pcall(set, "nameplateUseClassColorForFriendlyPlayerUnitNames", "1") end
+    end
+    HM.db.classNames = on and true or false
+    if verbose then
+        HM:Print("Oyuncu adları sınıf renginde: " .. (on and "|cff80ff80açık|r" or "|cffff6060kapalı|r") .. " (Shift+V de aynı ayarı değiştirir).")
+    end
+    return true
+end
+
+---------------------------------------------------------------------------
 -- Menü içeriği
 ---------------------------------------------------------------------------
 local function dbflag(key, inverse)
@@ -116,13 +172,13 @@ local function build()
 
     -- 1. sütun -----------------------------------------------------------
     add(1, { kind = "header", label = "Harita pinleri" })
-    add(1, toggle("Rare moblar", "Dünya haritasında rare mobların çıktığı noktalar. Üstüne gelince seviye, yaklaşık yeniden doğma süresi ve düşen eşyalar görünür.",
+    add(1, toggle("Rare moblar", "Dünya haritasında rare mobların çıktığı noktalar. Üstüne gelince seviye, yaklaşık yeniden doğma süresi ve düşen eşyalar görünür. Pine tıklayınca eşya kartı açılır: satırın üstüne gelince eşyanın özellikleri çıkar.",
         function() return not HM.db.pinsRareOff end, function(on) if HM.Pins then HM.Pins:Set("pinsRareOff", on, true) end end))
     add(1, toggle("Hazine sandığı noktaları", "Sandıkların çıkabildiği noktalar. Sandık her zaman orada olmaz; bu noktalardan birinde çıkar.",
         function() return not HM.db.pinsChestOff end, function(on) if HM.Pins then HM.Pins:Set("pinsChestOff", on, true) end end))
     add(1, toggle("Uçuş noktaları", "Rotandaki uçuş noktaları.",
         function() return not HM.db.pinsFpOff end, function(on) if HM.Pins then HM.Pins:Set("pinsFpOff", on, true) end end))
-    local herb = toggle("Ot noktaları", "Otların çıkabildiği noktalar (GatherMate2 verisi).",
+    local herb = toggle("Ot noktaları", "Otların çıkabildiği noktalar (GatherMate2 verisi). Minimap'te simgeyle, dünya haritasında küçük noktayla gösterilir; yaklaşınca haber de buna bağlıdır.",
         function() return not HM.db.gatherHerbOff end, function(on) if HM.Gather then HM.Gather:Set("herb", on, true) end end)
     herb.note = function()
         if HM.Gather and HM.Gather:NoProfession("herb") then
@@ -130,7 +186,7 @@ local function build()
         end
     end
     add(1, herb)
-    local ore = toggle("Maden noktaları", "Madenlerin çıkabildiği noktalar (GatherMate2 verisi).",
+    local ore = toggle("Maden noktaları", "Madenlerin çıkabildiği noktalar (GatherMate2 verisi). Minimap'te simgeyle, dünya haritasında küçük noktayla gösterilir; yaklaşınca haber de buna bağlıdır.",
         function() return not HM.db.gatherOreOff end, function(on) if HM.Gather then HM.Gather:Set("ore", on, true) end end)
     ore.note = function()
         if HM.Gather and HM.Gather:NoProfession("ore") then
@@ -140,6 +196,21 @@ local function build()
     add(1, ore)
     add(1, toggle("Yalnızca toplayabildiklerim", "Açıkken mesleğin ve becerin yetmeyen ot/maden noktaları gizlenir. Kapatırsan hepsi görünür.",
         function() return HM.db.gatherSkillOnly and true or false end, function(on) if HM.Gather then HM.Gather:SetSkillOnly(on, true) end end))
+    add(1, { kind = "choice", label = "Ot/maden haritada", bw = 44,
+        tip = "Dünya haritasında ot ve maden noktalarının görünümü. Nokta: küçük renkli daire (yeşil ot, turuncu maden), harita okunur kalır. Simge: meslek simgesi (kalabalık bölgede haritayı kapatır). Yok: dünya haritasında hiç çizilmez, yalnız minimap'te görünür.",
+        choices = { { "Yok", 0 }, { "Nokta", 1 }, { "Simge", 2 } },
+        get = function() return HM.Gather and HM.Gather:MapMode() or 1 end,
+        set = function(v) if HM.Gather then HM.Gather:SetMapMode(v, true) end end })
+    add(1, { kind = "choice", label = "Ot/maden minimap'te", bw = 44,
+        tip = "Minimap'in gösterdiği alandaki ot ve maden noktaları (GatherMate2'deki gibi). Nokta: küçük renkli daire (yeşil ot, turuncu maden). Simge: meslek simgesi. Yok: minimap'te gösterme. Yürüdükçe ve minimap'i yakınlaştırdıkça güncellenir; üstüne gelince düğümün adı çıkar.",
+        choices = { { "Yok", 0 }, { "Nokta", 1 }, { "Simge", 2 } },
+        get = function() return HM.Gather and HM.Gather:MiniMode() or 1 end,
+        set = function(v) if HM.Gather then HM.Gather:SetMiniMode(v, true) end end })
+    add(1, { kind = "choice", label = "Pin boyutu", bw = 44,
+        tip = "Haritadaki rare, sandık, uçuş ve ot/maden pinlerinin (minimap'tekiler dahil) boyu. Küçük: retail'deki gibi ufak simgeler.",
+        choices = { { "Küçük", 1 }, { "Orta", 2 }, { "Büyük", 3 } },
+        get = function() return HM.Pins and HM.Pins:PinScale() or 1 end,
+        set = function(v) if HM.Pins then HM.Pins:SetPinScale(v, true) end end })
 
     add(1, { kind = "header", label = "Haber ve uyarılar" })
     add(1, { kind = "choice", label = "Yakında haber", tip = "Bir ot ya da maden noktasına bu kadar yarda yaklaşınca sohbete tek satır düşer ve kısa bir ses çalar. \"Yok\" kapatır.",
@@ -189,6 +260,8 @@ local function build()
     add(2, toggle("Minimap koordinatı", "Minimap'in sağ üstünde küçük koordinat.",
         function() return HM.db.minimapCoords ~= false end,
         function(on) if (HM.db.minimapCoords ~= false) ~= on and HM.ToggleMinimapCoords then HM.ToggleMinimapCoords() end end))
+    add(2, toggle("Oyuncu adları sınıf renginde", "Çevredeki dost oyuncuların adı sınıf renginde görünür (dost oyuncu isim plakaları: yalnız ad). Oyunun kendi ayarıdır; Shift+V de aynı şeyi açıp kapatır. Savaşta değiştirilemez.",
+        function() return Menu:ClassNamesState() end, function(on) Menu:SetClassNames(on, false) end))
     local zzz = toggle("Dinlenme (zzz) göstergesi", "Han ya da şehirde dinlenirken oyuncu çerçevende zzz. EllesmereUI'ın \"Rested Indicator\" seçeneğini açar/kapatır.",
         function() return Menu:RestedState() end, function(on) Menu:SetRested(on, false) end)
     zzz.na = function() Menu:SetRested(true, true) end      -- EllesmereUI yoksa nedenini söyle
@@ -251,9 +324,9 @@ local function makeRow(parent)
     return r
 end
 
-local function makeChoice(row, i)
+local function makeChoice(row, i, width)
     local b = CreateFrame("Button", nil, row)
-    b:SetSize(32, ROW_H - 4)
+    b:SetSize(width or 32, ROW_H - 4)
     b.bg = b:CreateTexture(nil, "BACKGROUND")
     b.bg:SetAllPoints()
     b.bg:SetColorTexture(1, 1, 1, 0.06)
@@ -339,12 +412,13 @@ function Menu:Create()
             r:EnableMouse(false)
         elseif it.kind == "choice" then
             local x = 0
+            local bw = it.bw or 32
             for c = #it.choices, 1, -1 do
-                local b = makeChoice(r, c)
+                local b = makeChoice(r, c, bw)
                 b.value = it.choices[c][2]
                 b.text:SetText(HM:T(it.choices[c][1]))
                 b:SetPoint("RIGHT", r, "RIGHT", -x, 0)
-                x = x + 34
+                x = x + bw + 2
             end
         end
         maxRows = math.max(maxRows, -y[col])
@@ -488,6 +562,11 @@ HM:OnLogin(function()
             if Menu:SetRested(true, false) then
                 HM:Print("Dinlenme (zzz) göstergesi açıldı: han ya da şehirde oyuncu çerçevende görünür. Kapatmak için Menü > Görünüm.")
             end
+        end
+        -- Sınıf renkli adlar: menüden açıldıysa ve ayar kapalı bulunduysa yeniden aç.
+        if db.classNames == true and Menu:ClassNamesState() == false and not HM.inInstance
+            and not (InCombatLockdown and InCombatLockdown()) then
+            Menu:SetClassNames(true, false)
         end
         if not db.menuHint then
             db.menuHint = true

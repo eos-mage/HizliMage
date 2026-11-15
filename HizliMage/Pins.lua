@@ -2,13 +2,16 @@
 -- Pins.lua: dünya haritası pinleri ve rare takibi.
 --
 -- Pin türleri (her biri menüden ya da /hm pin ile ayrı ayrı açılıp kapanır):
---   F  uçuş noktaları (rotadaki F adımları)            sarı kanat
---   R  rare moblar (PinsData.lua)                       gümüş kafatası
---   C  hazine sandığı noktaları (PinsData.lua)          sandık
---   H  ot noktaları, M maden noktaları (Gather.lua)     meslek simgeleri
+--   F  uçuş noktaları (rotadaki F adımları)            kanat
+--   R  rare moblar (PinsData.lua)                       retail'deki rare yıldızı (elitler çerçeveli)
+--   C  hazine sandığı noktaları (PinsData.lua)          retail'deki küçük hazine sandığı
+--   H  ot noktaları, M maden noktaları (Gather.lua)     küçük nokta (ya da meslek simgesi)
 --
 -- Rare ipucu: seviye, yaklaşık yeniden doğma aralığı, bu karakterin son görüş /
 -- ölüm kaydı ve düşen eşyalar (kalite rengi + varsa yüzde).
+-- Rare pinine TIKLAYINCA aynı bilgiler bir kartta açılır: karttaki eşya satırının
+-- üstüne gelince eşyanın kendi ipucu (özellikleri) çıkar, tıklayınca sabitlenir,
+-- Shift+tık sohbete bağlantı yazar.
 --
 -- Veri iki yerden gelir:
 --   PinsData.lua (bu eklenti)      : rare ve sandık konumları, seviye, yeniden doğma aralığı
@@ -30,17 +33,41 @@ local active = {}     -- şu an haritada görünenler
 local hovered         -- ipucu açık olan pin
 
 -- Her tür için aday dokular: bu istemcide var olan ilki kullanılır (HM.ResolveIcon).
+-- Rare ve sandık: oyunun kendi (retail) harita simgeleri; bu istemcide yoksa eski dosya simgeleri.
 local ICONS = {
     F = { "Interface\\MINIMAP\\Tracking\\FlightMaster", "atlas:FlightMaster", "atlas:TaxiNode_Neutral" },
-    R = { "Interface\\TargetingFrame\\UI-RaidTargetingIcon_8", "atlas:VignetteKill" },
-    C = { "Interface\\Icons\\INV_Box_01", "atlas:VignetteLoot", "atlas:Mobile-TreasureIcon" },
+    R = { "atlas:VignetteKill", "Interface\\TargetingFrame\\UI-RaidTargetingIcon_8" },
+    RE = { "atlas:VignetteKillElite", "atlas:VignetteKill", "Interface\\TargetingFrame\\UI-RaidTargetingIcon_8" },   -- rare elit
+    C = { "atlas:VignetteLoot", "atlas:VignetteLootElite", "Interface\\Icons\\INV_Box_01" },
     H = { "Interface\\Icons\\INV_Misc_Flower_02", "atlas:Mobile-Herbalism", "atlas:worldquest-icon-herbalism" },
     M = { "Interface\\Icons\\INV_Pick_02", "atlas:Mobile-Mining", "atlas:worldquest-icon-mining" },
 }
 Pins.ICONS = ICONS
--- boyut ve katman: önemli pinler üstte kalsın
-local SIZE  = { F = 18, R = 18, C = 14, H = 10, M = 10 }
+-- Boyut: simgenin boyu (harita birimi), "Küçük" ayarında. Menüdeki "Pin boyutu"
+-- (Küçük / Orta / Büyük) hepsini birlikte büyütür. Bu istemcide oyunun rare/sandık
+-- simgeleri çerçevesini dolduruyor (oyunda ölçüldü), o yüzden atlas için ek pay yok.
+local BASE  = { F = 12, R = 11, C = 8, H = 8, M = 8 }
+local SCALE = { 1.0, 1.3, 1.7 }
+local ATLAS_PAD = 1.0
 local LEVEL = { H = 3, M = 4, C = 6, F = 7, R = 8 }
+
+local function pinFactor()
+    return SCALE[(HM.db and HM.db.pinScale) or 1] or 1
+end
+Pins.Factor = pinFactor
+
+local function pinSize(kind, resolved)
+    local s = (BASE[kind] or 10) * pinFactor()
+    if resolved == "atlas" and (kind == "R" or kind == "C" or kind == "F") then s = s * ATLAS_PAD end
+    return math.floor(s + 0.5)
+end
+-- Ot/maden "küçük nokta" görünümü: bölgede yüzlerce düğüm olduğu için simge yerine
+-- renkli küçük daire (koyu çerçeveli). Harita okunur kalır; üstüne gelince adı çıkar.
+local DOT_TEX = "Interface\\CharacterFrame\\TempPortraitAlphaMask"   -- beyaz daire
+local DOT_SIZE = { 5, 7, 9 }          -- Küçük / Orta / Büyük
+local DOT_COLOR = { H = { 0.30, 0.95, 0.40 }, M = { 1.00, 0.50, 0.10 } }
+Pins.DOT_COLOR = DOT_COLOR
+Pins.DOT_TEX = DOT_TEX
 
 local QCOLOR = {
     [0] = "ff9d9d9d", [1] = "ffffffff", [2] = "ff1eff00", [3] = "ff0070dd", [4] = "ffa335ee", [5] = "ffff8000",
@@ -111,7 +138,33 @@ function Pins.ItemLabel(itemID, q)
     return text, cached
 end
 
--- Rare ipucu satırları: { {sol, sağ, r, g, b}, ... } ve "eksik eşya bilgisi var mı".
+-- Eşya bağlantısı: istemci eşyayı tanıyorsa kendi bağlantısı (ikinci dönüş true),
+-- tanımıyorsa yedek adla kurulmuş bağlantı.
+function Pins.ItemLink(itemID, q)
+    local getInfo = (C_Item and C_Item.GetItemInfo) or GetItemInfo
+    if getInfo then
+        local ok, _, link = pcall(getInfo, itemID)
+        if ok and type(link) == "string" and link:find("|H", 1, true) then return link, true end
+    end
+    local DD = Pins.DropData()
+    local name = (DD and DD.items and DD.items[itemID]) or ("Eşya #" .. tostring(itemID))
+    return "|c" .. (QCOLOR[q or 1] or QCOLOR[1]) .. "|Hitem:" .. tostring(itemID) .. "::::::::::::|h[" .. name .. "]|h|r", false
+end
+
+-- Sohbet satırı için: simge + tıklanabilir bağlantı (eşya önbellekteyse), değilse renkli ad.
+function Pins.ItemChat(itemID, q)
+    local link, real = Pins.ItemLink(itemID, q)
+    if not real then return (Pins.ItemLabel(itemID, q)) end
+    local getIcon = (C_Item and C_Item.GetItemIconByID) or GetItemIcon
+    if getIcon then
+        local ok, tex = pcall(getIcon, itemID)
+        if ok and tex then return "|T" .. tostring(tex) .. ":14:14:0:0|t " .. link end
+    end
+    return link
+end
+
+-- Rare ipucu satırları: { {sol, sağ, r, g, b, [r2, g2, b2], item = eşyaID, q = kalite}, ... }
+-- ve "eksik eşya bilgisi var mı". Eşya satırlarında item alanı doludur (kart bunu kullanır).
 function Pins:RareLines(id, x, y)
     local D = HM.PinsData
     local r = D and D.rares and D.rares[id]
@@ -165,11 +218,14 @@ function Pins:RareLines(id, x, y)
         for i = 1, #drops, 3 do
             local label, cached = Pins.ItemLabel(drops[i], drops[i + 1])
             if not cached then pending = true end
+            local line
             if (drops[i + 2] or 0) > 0 then
-                lines[#lines + 1] = { label, pctText(drops[i + 2]), 1, 1, 1, 1, 0.95, 0.75 }
+                line = { label, pctText(drops[i + 2]), 1, 1, 1, 1, 0.95, 0.75 }
             else
-                lines[#lines + 1] = { label, nil, 1, 1, 1 }
+                line = { label, nil, 1, 1, 1 }
             end
+            line.item, line.q = drops[i], drops[i + 1]
+            lines[#lines + 1] = line
         end
     elseif not Pins.DropData() then
         lines[#lines + 1] = { "Düşen eşya verisi yüklü değil (HizliMage_Veri eklentisi).", nil, 0.6, 0.6, 0.6 }
@@ -183,18 +239,26 @@ end
 -- Pin çerçeveleri
 ---------------------------------------------------------------------------
 local function showTooltip(self)
+    -- bu rare'in kartı açıkken ipucu kartın üstüne binmesin
+    if self.kind == "R" and Pins.CardRare and Pins.CardRare() == self.rareID then return end
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
     GameTooltip:SetText(HM:T(self.title or "?"), 1, 0.82, 0)
     local pending = false
     if self.kind == "R" and self.rareID then
         local lines, pend = Pins:RareLines(self.rareID, self.px, self.py)
         pending = pend
+        local hasItems = false
         for _, l in ipairs(lines or {}) do
+            if l.item then hasItems = true end
             if l[2] then
                 GameTooltip:AddDoubleLine(HM:T(l[1]), HM:T(l[2]), l[3] or 1, l[4] or 1, l[5] or 1, l[6] or 1, l[7] or 1, l[8] or 1)
             else
                 GameTooltip:AddLine(HM:T(l[1]), l[3] or 1, l[4] or 1, l[5] or 1, true)
             end
+        end
+        if hasItems then
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine(HM:T("Tıkla: eşyaların özelliklerine bak"), 0.45, 0.8, 1)
         end
     else
         if self.subtitle then GameTooltip:AddLine(HM:T(self.subtitle), 1, 1, 1, true) end
@@ -210,15 +274,30 @@ local function showTooltip(self)
     end
 end
 
-local function acquirePin(parent, kind)
+-- Tıklama: yalnız rare pinleri tıklanır (eşya kartı). Öbür pinlerde tıklama alttaki
+-- haritaya geçer. Sağ tık rare pininde de haritaya geçsin (uzaklaştırma bozulmasın);
+-- bu ayar savaşta değiştirilemediği için savaş dışında bir kez yapılır.
+local function setClickable(p, on)
+    if p.clickable ~= on and p.SetMouseClickEnabled then
+        if pcall(p.SetMouseClickEnabled, p, on) then p.clickable = on end
+    end
+    if on and not p.passRight and p.SetPassThroughButtons and not (InCombatLockdown and InCombatLockdown()) then
+        if pcall(p.SetPassThroughButtons, p, "RightButton") then p.passRight = true end
+    end
+end
+
+local function acquirePin(parent, kind, dot, elite)
     local p = table.remove(pool)
     if not p then
         p = CreateFrame("Button", nil, parent)
+        p.ring = p:CreateTexture(nil, "ARTWORK")      -- nokta görünümünün koyu çerçevesi
+        p.ring:SetAllPoints()
+        p.ring:Hide()
         p.tex = p:CreateTexture(nil, "OVERLAY")
         p.tex:SetAllPoints()
         p:EnableMouse(true)
-        -- yalnız fare üstü (ipucu); tıklamalar alttaki haritaya geçsin
-        if p.SetMouseClickEnabled then pcall(p.SetMouseClickEnabled, p, false) end
+        p.clickable = true                            -- düğmeler tıklanabilir doğar
+        if p.RegisterForClicks then pcall(p.RegisterForClicks, p, "LeftButtonUp") end
         p:SetScript("OnEnter", function(self)
             hovered = self
             self.retried = nil
@@ -229,12 +308,46 @@ local function acquirePin(parent, kind)
             if hovered == self then hovered = nil end
             GameTooltip:Hide()
         end)
+        p:SetScript("OnClick", function(self)
+            if self.kind ~= "R" or not self.rareID then return end
+            local ok, err = pcall(Pins.ToggleCard, Pins, self.rareID, self.px, self.py, self)
+            if not ok then HM:LogError("rare kartı", err) end
+        end)
     end
     p:SetParent(parent)
     p.kind = kind
-    HM.ApplyIcon(p.tex, ICONS[kind] or ICONS.F)
-    local s = SIZE[kind] or 14
-    p:SetSize(s, s)
+    setClickable(p, kind == "R")
+    p.tex:ClearAllPoints()
+    if dot and DOT_COLOR[kind] then
+        local c = DOT_COLOR[kind]
+        if HM.ResolveIcon({ DOT_TEX }) == "file" then
+            p.ring:SetTexture(DOT_TEX)
+            p.ring:SetVertexColor(0, 0, 0, 0.85)
+            p.ring:Show()
+            p.tex:SetTexture(DOT_TEX)
+            if p.tex.SetTexCoord then p.tex:SetTexCoord(0, 1, 0, 1) end
+            p.tex:SetVertexColor(c[1], c[2], c[3], 1)
+            p.tex:SetPoint("TOPLEFT", 1, -1)
+            p.tex:SetPoint("BOTTOMRIGHT", -1, 1)
+        else
+            -- daire dokusu bu istemcide yoksa düz renkli küçük kare
+            p.ring:Hide()
+            p.tex:SetAllPoints()
+            p.tex:SetVertexColor(1, 1, 1, 1)
+            if p.tex.SetColorTexture then p.tex:SetColorTexture(c[1], c[2], c[3], 0.95) end
+        end
+        p.dot = true
+        local ds = DOT_SIZE[(HM.db and HM.db.pinScale) or 1] or DOT_SIZE[1]
+        p:SetSize(ds, ds)
+    else
+        p.ring:Hide()
+        p.tex:SetAllPoints()
+        p.tex:SetVertexColor(1, 1, 1, 1)
+        local resolved = HM.ApplyIcon(p.tex, (elite and kind == "R") and ICONS.RE or ICONS[kind] or ICONS.F)
+        p.dot = nil
+        local s = pinSize(kind, resolved)
+        p:SetSize(s, s)
+    end
     p:Show()
     return p
 end
@@ -342,8 +455,8 @@ local function context()
     return { canvas = canvas, w = w, h = h, cs = canvasScale(canvas), base = base, levelKind = levelKind }
 end
 
-local function place(ctx, kind, x, y)
-    local p = acquirePin(ctx.canvas, kind)
+local function place(ctx, kind, x, y, dot, elite)
+    local p = acquirePin(ctx.canvas, kind, dot, elite)
     p.px, p.py = x, y
     position(p, ctx)
     active[#active + 1] = p
@@ -378,11 +491,14 @@ function Pins:Draw()
     self.lastCtx = ctx
     local D = HM.PinsData
 
-    -- H / M: en altta kalsınlar diye önce
-    if HM.Gather then
+    -- H / M: en altta kalsınlar diye önce. Görünüm: 0 = çizme, 1 = küçük nokta, 2 = simge
+    local gmode = (HM.Gather and HM.Gather.MapMode) and HM.Gather:MapMode() or 2
+    self.lastGatherMode = gmode
+    if HM.Gather and gmode ~= 0 then
+        local dot = (gmode == 1)
         if not db.gatherHerbOff then
             for _, n in ipairs(HM.Gather:NodesFor(mapID, "herb", true)) do
-                local p = place(ctx, "H", n.x, n.y)
+                local p = place(ctx, "H", n.x, n.y, dot)
                 p.title = n.n
                 p.subtitle = string.format("Ot noktası · gereken beceri %d", n.skill or 1)
                 count.H = count.H + 1
@@ -390,7 +506,7 @@ function Pins:Draw()
         end
         if not db.gatherOreOff then
             for _, n in ipairs(HM.Gather:NodesFor(mapID, "ore", true)) do
-                local p = place(ctx, "M", n.x, n.y)
+                local p = place(ctx, "M", n.x, n.y, dot)
                 p.title = n.n
                 p.subtitle = string.format("Maden noktası · gereken beceri %d", n.skill or 1)
                 count.M = count.M + 1
@@ -426,7 +542,7 @@ function Pins:Draw()
         for i = 1, #list, 3 do
             local r = D.rares[list[i]]
             if r then
-                local p = place(ctx, "R", list[i + 1], list[i + 2])
+                local p = place(ctx, "R", list[i + 1], list[i + 2], false, r[4] == 1)
                 p.title = r[1]
                 p.rareID = list[i]
                 count.R = count.R + 1
@@ -438,6 +554,249 @@ end
 function Pins:Refresh()
     local ok, err = pcall(self.Draw, self)
     if not ok then HM:LogError("pin çizimi", err) end
+end
+
+---------------------------------------------------------------------------
+-- Rare kartı: pine tıklayınca açılır. İpucundaki bilgilerin aynısı, ama eşya
+-- satırları canlıdır:
+--   üstüne gel   -> eşyanın kendi ipucu (özellikler; Shift basılıysa kuşandığınla karşılaştırma)
+--   tıkla        -> eşya ipucu ekranda sabitlenir (sohbetteki bağlantıya tıklamak gibi)
+--   Shift + tıkla -> bağlantıyı sohbete yazar, Ctrl + tıkla -> giyinme odası
+-- Kart sürüklenebilir; aynı pine ikinci tık, çarpı ya da haritayı kapatmak kartı kapatır.
+---------------------------------------------------------------------------
+local card
+local CARD_W, CARD_PAD, CARD_ROW = 290, 10, 18
+local CARD_FONT = "Fonts\\ARIALN.TTF"
+
+local function cardFont(fs, size, flags)
+    pcall(fs.SetFont, fs, CARD_FONT, size, flags or "")
+    if not fs:GetFont() and fs.SetFontObject and GameFontHighlightSmall then fs:SetFontObject(GameFontHighlightSmall) end
+end
+
+local function rowEnter(self)
+    if not self.itemID then return end
+    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+    local ok = GameTooltip.SetItemByID and pcall(GameTooltip.SetItemByID, GameTooltip, self.itemID)
+    if not ok and GameTooltip.SetHyperlink then
+        ok = pcall(GameTooltip.SetHyperlink, GameTooltip, "item:" .. tostring(self.itemID))
+    end
+    if not ok then
+        GameTooltip:SetText(HM:T("Eşya bilgisi okunamadı (#" .. tostring(self.itemID) .. ")"), 1, 0.5, 0.5)
+    end
+    GameTooltip:Show()
+    if IsShiftKeyDown and IsShiftKeyDown() and GameTooltip_ShowCompareItem then
+        pcall(GameTooltip_ShowCompareItem, GameTooltip)
+    end
+end
+
+local function rowLeave() GameTooltip:Hide() end
+
+local function rowClick(self)
+    if not self.itemID then return end
+    local link = Pins.ItemLink(self.itemID, self.q)
+    -- Shift (sohbete yaz) / Ctrl (giyinme odası): oyunun kendi işleyicisi
+    if IsModifiedClick and IsModifiedClick() and HandleModifiedItemClick then
+        local ok, err = pcall(HandleModifiedItemClick, link)
+        if not ok then HM:LogError("rare kartı: eşya bağlantısı", err) end
+        return
+    end
+    if SetItemRef then
+        local ok, err = pcall(SetItemRef, "item:" .. tostring(self.itemID), link, "LeftButton")
+        if not ok then HM:LogError("rare kartı: eşya ipucu", err) end
+    end
+end
+
+local function cardRow(i)
+    local r = card.rows[i]
+    if r then return r end
+    r = CreateFrame("Button", nil, card)
+    r.left = r:CreateFontString(nil, "OVERLAY")
+    cardFont(r.left, 12)
+    r.left:SetJustifyH("LEFT")
+    if r.left.SetJustifyV then r.left:SetJustifyV("TOP") end
+    r.right = r:CreateFontString(nil, "OVERLAY")
+    cardFont(r.right, 11)
+    r.right:SetJustifyH("RIGHT")
+    r.right:SetPoint("RIGHT", -3, 0)
+    r.hl = r:CreateTexture(nil, "HIGHLIGHT")
+    r.hl:SetAllPoints()
+    r.hl:SetColorTexture(1, 1, 1, 0.10)
+    r:SetScript("OnEnter", rowEnter)
+    r:SetScript("OnLeave", rowLeave)
+    r:SetScript("OnClick", rowClick)
+    card.rows[i] = r
+    return r
+end
+
+local function cardCreate()
+    if card then return card end
+    local parent = WorldMapFrame or UIParent
+    card = CreateFrame("Frame", "HizliMageRareCard", parent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+    -- haritanın ve pinlerinin (çerçeve düzeyi 2000+) üstünde, ipuçlarının altında
+    card:SetFrameStrata("FULLSCREEN_DIALOG")
+    if card.SetFrameLevel then card:SetFrameLevel(6000) end
+    card:SetClampedToScreen(true)
+    card:EnableMouse(true)
+    card:SetMovable(true)
+    card:RegisterForDrag("LeftButton")
+    card:SetScript("OnDragStart", function(self) self:StartMoving() end)
+    card:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
+    if card.SetBackdrop then
+        card:SetBackdrop({
+            bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            tile = true, tileSize = 16, edgeSize = 14,
+            insets = { left = 3, right = 3, top = 3, bottom = 3 },
+        })
+        card:SetBackdropColor(0.05, 0.06, 0.1, 0.96)
+        card:SetBackdropBorderColor(0.75, 0.75, 1, 0.9)
+    end
+    card.title = card:CreateFontString(nil, "OVERLAY")
+    cardFont(card.title, 14, "OUTLINE")
+    card.title:SetPoint("TOPLEFT", CARD_PAD, -10)
+    card.title:SetPoint("RIGHT", card, "RIGHT", -26, 0)
+    card.title:SetJustifyH("LEFT")
+    card.title:SetTextColor(1, 0.82, 0)
+    card.close = CreateFrame("Button", nil, card, "UIPanelCloseButton")
+    card.close:SetSize(22, 22)
+    card.close:SetPoint("TOPRIGHT", 0, 0)
+    card.close:SetScript("OnClick", function() card:Hide() end)
+    -- Kapatma düğmesi şablonu kendi sabit çerçeve düzeyiyle gelir (oyunda 510 ölçüldü);
+    -- kart 6000'de olduğu için düğme kartın ALTINDA kalıp tıklanamıyordu.
+    if card.close.SetFrameLevel and card.GetFrameLevel then card.close:SetFrameLevel((card:GetFrameLevel() or 6000) + 10) end
+    card.hint = card:CreateFontString(nil, "OVERLAY")
+    cardFont(card.hint, 10)
+    card.hint:SetTextColor(0.55, 0.55, 0.55)
+    card.hint:SetJustifyH("LEFT")
+    card.hint:SetPoint("BOTTOMLEFT", CARD_PAD, 8)
+    card.hint:SetWidth(CARD_W - 2 * CARD_PAD)
+    card.rows = {}
+    card:SetScript("OnHide", function(self)
+        self.rareID = nil
+        GameTooltip:Hide()
+    end)
+    card:Hide()
+    return card
+end
+
+-- Kartı açık olan rare (yoksa nil).
+function Pins.CardRare()
+    if card and card:IsShown() then return card.rareID end
+    return nil
+end
+
+function Pins:HideCard()
+    if card and card:IsShown() then card:Hide() end
+end
+
+function Pins:RenderCard()
+    local f = card
+    if not (f and f.rareID) then return end
+    local D = HM.PinsData
+    local r = D and D.rares and D.rares[f.rareID]
+    if not r then f:Hide() return end
+    f.title:SetText(HM:T(r[1]))
+    local lines, pending = self:RareLines(f.rareID, f.px, f.py)
+    local rowW = CARD_W - 2 * CARD_PAD
+    local y, n, items = -32, 0, 0
+    for _, l in ipairs(lines or {}) do
+        if l[1] == " " then
+            y = y - 6
+        else
+            n = n + 1
+            local row = cardRow(n)
+            row:ClearAllPoints()
+            row:SetPoint("TOPLEFT", f, "TOPLEFT", CARD_PAD, y)
+            row:SetSize(rowW, CARD_ROW)
+            row.itemID, row.q = l.item, l.q
+            row.left:SetText(HM:T(l[1]))
+            row.left:SetTextColor(l[3] or 1, l[4] or 1, l[5] or 1)
+            row.right:SetText(l[2] and HM:T(l[2]) or "")
+            row.right:SetTextColor(l[6] or 1, l[7] or 1, l[8] or 1)
+            row.left:ClearAllPoints()
+            local h = CARD_ROW
+            if l.item or l[2] then
+                -- tek satır: ad solda, yüzde / not sağda
+                row.left:SetPoint("LEFT", 3, 0)
+                row.left:SetPoint("RIGHT", row.right, "LEFT", -6, 0)
+                if row.left.SetWordWrap then row.left:SetWordWrap(false) end
+            else
+                -- uzun açıklama: satır kır, yüksekliği metne göre ayarla
+                row.left:SetPoint("TOPLEFT", 3, -2)
+                row.left:SetWidth(rowW - 6)
+                if row.left.SetWordWrap then row.left:SetWordWrap(true) end
+                local sh = row.left:GetStringHeight()
+                if type(sh) == "number" and sh + 4 > h then h = sh + 4 end
+                row:SetHeight(h)
+            end
+            row:EnableMouse(l.item and true or false)
+            if l.item then items = items + 1 end
+            row:Show()
+            y = y - h
+        end
+    end
+    for i = n + 1, #f.rows do
+        f.rows[i]:Hide()
+        f.rows[i].itemID = nil
+    end
+    f.nRows, f.nItems = n, items
+    local bottom = 10
+    if items > 0 then
+        f.hint:SetText(HM:T("Eşyanın üstüne gel: özellikleri. Tıkla: ipucunu sabitle. Shift+tıkla: sohbete yaz."))
+        f.hint:Show()
+        local hh = f.hint:GetStringHeight()
+        bottom = 14 + ((type(hh) == "number" and hh > 0) and hh or 12)
+    else
+        f.hint:Hide()
+    end
+    f:SetSize(CARD_W, -y + bottom)
+    -- İstemci eşya bilgisini sonradan getirir: kart açıkken birkaç kez yenile.
+    if pending and (f.tries or 0) < 4 then
+        f.tries = (f.tries or 0) + 1
+        local id = f.rareID
+        HM:After(0.7, function()
+            if card and card:IsShown() and card.rareID == id then Pins:RenderCard() end
+        end, "rare kartı")
+    end
+end
+
+-- anchor: tıklanan pin (kart onun yanında açılır); yoksa ekranın ortası.
+function Pins:ShowCard(id, x, y, anchor)
+    local f = cardCreate()
+    f.rareID, f.px, f.py, f.tries = id, x, y, 0
+    self:RenderCard()
+    if not f.rareID then return end
+    f:ClearAllPoints()
+    local placed = false
+    if anchor and anchor.GetCenter and anchor.GetEffectiveScale and f.GetEffectiveScale then
+        local cx, cy = anchor:GetCenter()
+        local es, fs = anchor:GetEffectiveScale(), f:GetEffectiveScale()
+        if type(cx) == "number" and type(cy) == "number" and type(es) == "number" and type(fs) == "number" and fs > 0 then
+            -- pinin ekrandaki yeri (kart ölçeğinde); ekranın sağ yarısındaysa kart sola açılır
+            local px, py = cx * es / fs, cy * es / fs
+            local uw, ues = UIParent and UIParent:GetWidth(), UIParent and UIParent.GetEffectiveScale and UIParent:GetEffectiveScale()
+            local sw = (type(uw) == "number" and type(ues) == "number") and (uw * ues / fs) or nil
+            if type(sw) == "number" and px > sw * 0.6 then
+                f:SetPoint("TOPRIGHT", UIParent, "BOTTOMLEFT", px - 14, py + 14)
+            else
+                f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", px + 14, py + 14)
+            end
+            placed = true
+        end
+    end
+    if not placed then f:SetPoint("CENTER", UIParent, "CENTER", 0, 0) end
+    GameTooltip:Hide()
+    f:Show()
+end
+
+-- Aynı rare'in kartı açıksa kapatır, değilse açar.
+function Pins:ToggleCard(id, x, y, anchor)
+    if card and card:IsShown() and card.rareID == id then
+        card:Hide()
+        return false
+    end
+    self:ShowCard(id, x, y, anchor)
+    return true
 end
 
 ---------------------------------------------------------------------------
@@ -453,6 +812,32 @@ function Pins:Set(key, on, quiet)
         HM:Print(LABEL[key] .. ": " .. (on and "|cff80ff80açık|r" or "|cffff6060kapalı|r"))
     end
     self:Refresh()
+end
+
+-- Pin boyutu: 1 = küçük (varsayılan), 2 = orta, 3 = büyük. Rare, sandık, uçuş ve ot/maden
+-- pinlerinin hepsini birlikte ölçekler (minimap'tekiler dahil).
+local SCALE_NAME = { "küçük", "orta", "büyük" }
+local SCALE_WORD = { kucuk = 1, ["küçük"] = 1, ["1"] = 1, orta = 2, normal = 2, ["2"] = 2, buyuk = 3, ["büyük"] = 3, ["3"] = 3 }
+
+function Pins:PinScale()
+    local v = HM.db and HM.db.pinScale
+    if v == 2 or v == 3 then return v end
+    return 1
+end
+
+function Pins:SetPinScale(v, quiet)
+    if type(v) == "string" then v = SCALE_WORD[v:lower():match("^%s*(.-)%s*$")] end
+    if v ~= 1 and v ~= 2 and v ~= 3 then
+        if not quiet then
+            HM:Print("Pin boyutu: " .. SCALE_NAME[self:PinScale()] .. ". Değiştirmek için |cffffd100/hm pin boyut kucuk|r (ya da |cffffd100orta|r / |cffffd100buyuk|r).")
+        end
+        return false
+    end
+    HM.db.pinScale = v
+    if not quiet then HM:Print("Pin boyutu: |cff80ff80" .. SCALE_NAME[v] .. "|r") end
+    if HM.Gather and HM.Gather.MM then HM.Gather.MM.dirty = true; HM.Gather.MM.skinGen = (HM.Gather.MM.skinGen or 0) + 1 end
+    self:Refresh()
+    return true
 end
 
 function Pins:Toggle()      self:Set("pinsOff", HM.db.pinsOff and true or false) end
@@ -501,6 +886,22 @@ function Pins:Status()
         HM:Print(string.format("Haritada çizili: %d rare, %d sandık, %d uçuş, %d ot, %d maden. Tuval %.0fx%.0f, ölçek %.2f, pin düzeyi %d (%s).",
             lc.R or 0, lc.C or 0, lc.F or 0, lc.H or 0, lc.M or 0, c.w, c.h, c.cs, c.base, tostring(c.levelKind)))
     end
+    -- Minimap pinleri (ot/maden)
+    local MM = HM.Gather and HM.Gather.MM
+    if MM and HM.Gather.MiniMode and HM.Gather:MiniMode() ~= 0 then
+        if MM.radius then
+            HM:Print(string.format("Minimap: %d ot/maden noktası gösteriliyor (çevrede %d aday, görüş ~%d yd, biçim %s).",
+                MM.shown or 0, MM.n or 0, math.floor(MM.radius + 0.5), tostring(MM.shape or "?")))
+        else
+            HM:Print("Minimap: ot/maden gösterimi açık; şu an çizilecek nokta yok ya da konum okunamıyor.")
+        end
+        if (MM.errors or 0) > 0 then
+            HM:Print("|cffff8080Minimap pinleri hata verdi|r; ayrıntı için /hm hata.")
+        end
+    end
+    if HM.ResolveIcon({ DOT_TEX }) ~= "file" then
+        HM:Print("|cffff8080Nokta dokusu doğrulanamadı|r: ot/maden noktaları küçük kare olarak çizilir.")
+    end
     -- Simge dokuları bu istemcide bulundu mu? (pin görünmüyorsa ilk bakılacak yer)
     local missing = {}
     local NAMES = { F = "uçuş", R = "rare", C = "sandık", H = "ot", M = "maden" }
@@ -530,7 +931,7 @@ function Pins:RareSummary(id)
     if drops and #drops >= 3 then
         local parts = {}
         for i = 1, math.min(#drops, 9), 3 do
-            local label = Pins.ItemLabel(drops[i], drops[i + 1])
+            local label = Pins.ItemChat(drops[i], drops[i + 1])
             if (drops[i + 2] or 0) > 0 then label = label .. " " .. pctText(drops[i + 2]) end
             parts[#parts + 1] = label
         end
@@ -586,13 +987,14 @@ HM:OnLogin(function()
     db.pinsChestOff = db.pinsChestOff == true
     db.rareAlertOff = db.rareAlertOff == true
     if type(db.rareSeen) ~= "table" then db.rareSeen = {} end
+    if db.pinScale ~= 2 and db.pinScale ~= 3 then db.pinScale = 1 end
 
     if WorldMapFrame and WorldMapFrame.HookScript then
         WorldMapFrame:HookScript("OnShow", function() HM:After(0, function() Pins:Draw() end, "pin çizimi") end)
-        WorldMapFrame:HookScript("OnHide", function() releaseAll() end)
+        WorldMapFrame:HookScript("OnHide", function() releaseAll(); Pins:HideCard() end)
         if hooksecurefunc then
             if WorldMapFrame.OnMapChanged then
-                hooksecurefunc(WorldMapFrame, "OnMapChanged", function() Pins:Refresh() end)
+                hooksecurefunc(WorldMapFrame, "OnMapChanged", function() Pins:HideCard(); Pins:Refresh() end)
             end
             local function rescale()
                 local ok, err = pcall(Pins.Rescale, Pins)

@@ -1,4 +1,4 @@
-Hızlı Mage v2.17 — Horde 1-60 görev-görev hızlı kasma rehberi (WoW Forever)
+Hızlı Mage v2.18 — Horde 1-60 görev-görev hızlı kasma rehberi (WoW Forever)
 ==========================================================================
 
 Üç karakter için tek paket: Eos (Orc mage), Kael (Tauren druid), Thalor (Skyborne warrior).
@@ -13,6 +13,28 @@ Giriş ekranındaki AddOns listesinde "Hizli Mage" ve "Hizli Mage - Veri" işare
 Dosya değiştiyse /reload yeter. YENİ dosya ya da klasör geldiyse oyunu tamamen kapatıp aç (istemci yeni dosyaları
 yalnızca açılışta görür).
 
+Küçük pinler, minimap'te ot/maden, rare eşya kartı, sınıf renkli adlar (v2.18)
+-----------------------------------------------------------------------------
+- Harita pinleri küçüldü ve retail'deki simgelere geçti: rare'ler oyunun kendi rare simgesiyle (elitler çerçeveli),
+  sandık noktaları küçük hazine sandığıyla çizilir. Menü > Harita pinleri > "Pin boyutu": Küçük (varsayılan) / Orta /
+  Büyük hepsini birlikte ölçekler.
+- Ot ve maden noktaları dünya haritasında küçük renkli nokta olarak çizilir (yeşil ot, turuncu maden). Menü >
+  "Ot/maden haritada": Nokta / Simge (eski görünüm) / Yok (dünya haritasında hiç çizme).
+- Ot ve maden noktaları minimap'te de görünür (GatherMate2'deki gibi): minimap'in gösterdiği alandaki düğümler
+  çizilir, yürüdükçe ve yakınlaştırdıkça güncellenir; üstüne gelince düğümün adı çıkar. Yuvarlak, kare ve dönen
+  minimap desteklenir. Menü > "Ot/maden minimap'te": Nokta (varsayılan) / Simge / Yok.
+  /hm topla test çevrene 8 yöne deneme noktası koyar (minimap'i sınamak için; ikinci kez yazınca kaldırır).
+- Rare pinine TIKLAYINCA eşya kartı açılır: seviye, yeniden doğma ve düşen eşyalar. Karttaki eşya satırının üstüne
+  gelince eşyanın kendi ipucu (özellikleri, kuşandığınla karşılaştırma) çıkar; satıra tıklayınca ipucu ekranda
+  sabitlenir, Shift+tık bağlantıyı sohbete yazar, Ctrl+tık giyinme odasında gösterir. Kart sürüklenir; aynı pine
+  ikinci tık ya da çarpı kapatır.
+- Rare görünce gelen sohbet satırındaki eşyalar (istemci eşyayı tanıyorsa) tıklanabilir bağlantıdır.
+- Oyuncu adları sınıf renginde (Menü > Görünüm ya da /hm sinif): çevredeki dost oyuncuların adı sınıf renginde
+  görünür. Bu, oyunun "dost oyuncu isim plakaları" ayarıdır (Shift+V ile aynı). EllesmereUI eskiden bu ayarı her
+  girişte kendisi açardı; yeni sürümü kullanıcıya bırakıyor. Buradan açarsan seçimin hatırlanır ve girişte ayar
+  kapalı bulunursa yeniden açılır. Not: "Buff isteme" çevredeki oyuncuları bu plakalardan gördüğü için plakalar
+  açıkken fısıltı atabilir; istemezsen Menü > Otomatik işler > Buff isteme'yi kapat.
+
 Menü, harita pinleri ve hata kaydı (v2.17)
 ------------------------------------------
 Komut ezberlemek gerekmez. Rehber penceresinin altındaki "Menü" düğmesi, başlıktaki çark ya da /hm menu
@@ -22,7 +44,8 @@ Harita pinleri (dünya haritasında):
 - Rare moblar: çıktıkları noktalar. Üstüne gelince seviye, yaklaşık yeniden doğma aralığı, bu karakterin o rare'i
   en son ne zaman canlı/ölü gördüğü ve düşürdüğü eşyalar (kalite renginde; Wowhead verisi varsa yüzdesiyle).
 - Hazine sandığı noktaları: sandığın çıkabildiği yerler. Sandık her zaman orada olmaz; noktalardan birinde çıkar.
-- Ot ve maden noktaları: çıkabildikleri yerler. "Yalnızca toplayabildiklerim" açıkken becerin yetmeyenler gizlenir.
+- Ot ve maden noktaları: çıkabildikleri yerler (haritada küçük nokta, minimap'te simge). "Yalnızca toplayabildiklerim"
+  açıkken becerin yetmeyenler gizlenir.
 - Uçuş noktaları: rotandaki uçuş görevlileri.
 - "Bu bölgede ne var?" (menü) ya da /hm sayac: bulunduğun bölgede kaç rare, sandık, ot ve maden noktası olduğunu yazar.
 Yeniden doğma süreleri resmî değer değildir: klasik sunucu verisi ve oyuncu bildirimlerinden gelen yaklaşık aralıktır.

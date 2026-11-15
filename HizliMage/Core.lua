@@ -7,7 +7,7 @@ ns.HM = HM
 _G.HizliMage = HM
 
 HM.name = ADDON
-HM.version = "2.17.1"
+HM.version = "2.18.0"
 
 do
     local _, _, _, iface = GetBuildInfo()
@@ -587,10 +587,10 @@ local HELP = {
     "|cffffd100/hm lfg|r LFG sırasında seviyesi senden yüksek + tank veya healer'ı olan + mage'siz grup leader'larına otomatik whisper; |cffffd100/hm lfg ac|r aç, |cffffd100/hm lfg mesaj \"...\"|r şablon (%d=seviyen), |cffffd100/hm lfg tara|r manuel tarama + neden elendi raporu, seans başına en fazla 10 mesaj, aynı leader'a 10 dk içinde tekrar yok",
     "|cffffd100/hm kopya|r sohbetin son 500 satırını kopyalanabilir pencerede aç (Ctrl+A → Ctrl+C); Classic/Forever'da native chat copy yok, bu onun yerine geçer",
     "|cffffd100/hm bilgi|r zindan/raid bilgi panelini aç-kapat (seviye aralığı, kısa açıklama, boss notları — sınıfına göre açıklanır); zindana girdiğinde otomatik açılır, çıkınca kapanır",
-    "|cffffd100/hm pin|r harita pinlerini aç/kapat. Alt komutlar: |cffffd100fp|r uçuş, |cffffd100rare|r rare moblar (ipucunda seviye, yaklaşık doğma süresi, düşen eşyalar), |cffffd100sandik|r hazine sandığı noktaları, |cffffd100all|r hepsi, |cffffd100durum|r bu bölgede kaç nokta var, |cffffd100haber|r rare görünce haber ver aç/kapat",
+    "|cffffd100/hm pin|r harita pinlerini aç/kapat. Alt komutlar: |cffffd100fp|r uçuş, |cffffd100rare|r rare moblar (ipucunda seviye, yaklaşık doğma süresi, düşen eşyalar; pine tıklayınca eşya kartı açılır, satırın üstüne gelince eşyanın özellikleri), |cffffd100sandik|r hazine sandığı noktaları, |cffffd100all|r hepsi, |cffffd100durum|r bu bölgede kaç nokta var, |cffffd100haber|r rare görünce haber ver aç/kapat, |cffffd100boyut kucuk|r pin boyutu (|cffffd100orta|r / |cffffd100buyuk|r)",
     "|cffffd100/hm renk|r hedef aldığında mob seviye uyarısı (gri=XP yok atla, kırmızı=tehlikeli, skull=kaç) aç/kapat",
-    "|cffffd100/hm ot|r ot noktası pinleri aç/kapat; |cffffd100/hm maden|r maden; |cffffd100/hm topla|r ikisini aç; |cffffd100/hm yakin 40|r noktaya yaklaşınca haber (0 = kapat); |cffffd100/hm sayac|r bu bölgedeki nokta sayısı; |cffffd100/hm becerim|r yalnızca toplayabildiklerimi göster aç/kapat",
-    "|cffffd100/hm zzz|r dinlenme (zzz) göstergesini aç/kapat (EllesmereUI oyuncu çerçevesi); |cffffd100/hm hata|r eklentinin yakaladığı hatalar, |cffffd100/hm hata temizle|r siler",
+    "|cffffd100/hm ot|r ot noktalarını aç/kapat; |cffffd100/hm maden|r maden; |cffffd100/hm topla|r ikisini aç; |cffffd100/hm topla harita nokta|r dünya haritasında küçük nokta (|cffffd100simge|r / |cffffd100yok|r); |cffffd100/hm topla minimap nokta|r minimap'te küçük nokta (|cffffd100simge|r / |cffffd100yok|r; |cffffd100/hm topla test|r minimap'e deneme noktası koyar); |cffffd100/hm yakin 40|r noktaya yaklaşınca haber (0 = kapat); |cffffd100/hm sayac|r bu bölgedeki nokta sayısı; |cffffd100/hm becerim|r yalnızca toplayabildiklerimi göster aç/kapat",
+    "|cffffd100/hm sinif|r çevredeki oyuncu adlarını sınıf renginde göster aç/kapat (Shift+V ile aynı ayar); |cffffd100/hm zzz|r dinlenme (zzz) göstergesini aç/kapat (EllesmereUI oyuncu çerçevesi); |cffffd100/hm hata|r eklentinin yakaladığı hatalar, |cffffd100/hm hata temizle|r siler",
     "|cffffd100/hm ah|r seviyene göre Auction House alışveriş listesi: her slot için önerilen suffix (|cff80ff80of Frozen Wrath|r vb.) ve baz item adları; |cffffd100/hm ah cloak|r tek slota odaklan (helm/cloak/chest/wrist/hand/waist/legs/feet/ring/trinket/weapon/offhand/neck/shoulder)",
 }
 
@@ -797,7 +797,8 @@ local function slashHandler(msg)
         elseif sub == "all" or sub == "hepsi" then HM.Pins:AllOn()
         elseif sub == "durum" or sub == "mapid" or sub == "id" then HM.Pins:Status()
         elseif sub == "haber" or sub == "uyari" or sub == "uyarı" then HM.Pins:SetRareAlert(HM.db.rareAlertOff and true or false)
-        else HM:Print("/hm pin [fp|rare|sandik|all|durum|haber]") end
+        elseif sub == "boyut" or sub == "size" then HM.Pins:SetPinScale((rest:match("^%S+%s+(.-)$") or ""):lower())
+        else HM:Print("/hm pin [fp|rare|sandik|all|durum|haber|boyut kucuk/orta/buyuk]") end
     elseif cmd == "renk" or cmd == "mob" then
         -- /hm renk : hedef aldığın mob'un gri/kırmızı uyarısını aç/kapat
         if HM.MobColor then HM.MobColor:Toggle() else HM:Print("Mob rengi modülü yüklü değil.") end
@@ -809,7 +810,24 @@ local function slashHandler(msg)
         if HM.Gather then HM.Gather:ToggleOre() else HM:Print("Gather modülü yüklü değil.") end
     elseif cmd == "topla" or cmd == "gather" then
         -- /hm topla : ot + maden hepsini aç
-        if HM.Gather then HM.Gather:AllOn() else HM:Print("Gather modülü yüklü değil.") end
+        -- /hm topla harita nokta|simge|yok : dünya haritasındaki görünüm
+        -- /hm topla minimap [ac|kapat] : minimap'te göster
+        if not HM.Gather then HM:Print("Gather modülü yüklü değil."); return end
+        local sub, arg = rest:match("^(%S*)%s*(.-)$")
+        sub, arg = (sub or ""):lower(), (arg or ""):lower()
+        if sub == "harita" or sub == "map" then
+            HM.Gather:SetMapMode(arg)
+        elseif sub == "minimap" or sub == "mini" then
+            if arg == "" then HM.Gather:SetMinimap(nil)
+            elseif arg == "ac" or arg == "aç" or arg == "on" then HM.Gather:SetMinimap(true)
+            elseif arg == "off" then HM.Gather:SetMinimap(false)
+            else HM.Gather:SetMiniMode(arg) end
+        elseif sub == "test" or sub == "deneme" then
+            -- /hm topla test : minimap gösterimini sınamak için çevreye deneme noktaları koy/kaldır
+            HM.Gather:TestRing()
+        else
+            HM.Gather:AllOn()
+        end
     elseif cmd == "yakin" or cmd == "yakın" or cmd == "proximity" then
         -- /hm yakin 40 : proximity uyarı mesafesi yarda; 0 = kapat
         if HM.Gather then HM.Gather:SetRange(rest) else HM:Print("Gather modülü yüklü değil.") end
@@ -1075,6 +1093,9 @@ local function slashHandler(msg)
         HM:ShowErrors(rest)
     elseif cmd == "menu" or cmd == "menü" or cmd == "ayar" or cmd == "ayarlar" then
         if HM.Menu then HM.Menu:Toggle() else HM:Print("Menü modülü yüklenmemiş. Oyunu tamamen kapatıp aç.") end
+    elseif cmd == "sinif" or cmd == "sınıf" or cmd == "sinifrengi" or cmd == "isimler" then
+        -- /hm sinif : çevredeki oyuncu adları sınıf renginde (dost oyuncu isim plakaları) aç/kapat
+        if HM.Menu then HM.Menu:SetClassNames(nil, true) end
     elseif cmd == "zzz" or cmd == "dinlenme" then
         if HM.Menu and HM.Menu.SetRested then HM.Menu:SetRested(nil, true) else HM:Print("Menü modülü yüklenmemiş. Oyunu tamamen kapatıp aç.") end
     else
