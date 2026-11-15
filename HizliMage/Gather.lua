@@ -119,6 +119,18 @@ function Gather:Skill(kind)
     return skills[KIND[kind].prof], skillKnown
 end
 
+-- Bu türün pinleri açık ama karakterde o meslek olmadığı için hiçbiri görünmüyor mu?
+-- (Yalnızca toplayabildiklerim açıkken mesleği olmayan karakterde liste boş kalır.)
+function Gather:NoProfession(kind)
+    local db = HM.db
+    if not db or not db.gatherSkillOnly then return false end
+    if (kind == "herb" and db.gatherHerbOff) or (kind == "ore" and db.gatherOreOff) then return false end
+    local rank, known = self:Skill(kind)
+    return known and rank == nil
+end
+
+local HINT_NOPROF = "Hepsini görmek için Menü > |cffffd100Yalnızca toplayabildiklerim|r satırını kapat."
+
 -- filtered = true: "Yalnızca toplayabildiklerim" açıksa becerin yetmeyenler elenir.
 function Gather:NodesFor(mapID, kind, filtered)
     if not (mapID and KIND[kind]) then return {} end
@@ -224,6 +236,9 @@ function Gather:Set(kind, on, quiet)
     if kind == "herb" then HM.db.gatherHerbOff = not on else HM.db.gatherOreOff = not on end
     if not quiet then
         HM:Print((kind == "herb" and "Ot pinleri: " or "Maden pinleri: ") .. (on and "|cff80ff80açık|r" or "|cffff6060kapalı|r"))
+        if on and self:NoProfession(kind) then
+            HM:Print((kind == "herb" and "Bu karakterde Herbalism yok" or "Bu karakterde Mining yok") .. "; bu yüzden haritada görünmezler. " .. HINT_NOPROF)
+        end
     end
     if HM.Pins then HM.Pins:Refresh() end
 end
@@ -274,6 +289,9 @@ function Gather:Report()
         HM:MapName(mid), allH, allO, h, o))
     if known then
         HM:Print(string.format("Becerin: Herbalism %s, Mining %s.", hr and tostring(hr) or "yok", orank and tostring(orank) or "yok"))
+        if self:NoProfession("herb") or self:NoProfession("ore") then
+            HM:Print("Mesleğin olmayan türün noktaları haritada ve yakınlık haberinde gizlidir. " .. HINT_NOPROF)
+        end
     else
         HM:Print("Meslek becerin okunamadı; bütün düğümler gösteriliyor.")
     end

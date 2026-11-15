@@ -122,10 +122,22 @@ local function build()
         function() return not HM.db.pinsChestOff end, function(on) if HM.Pins then HM.Pins:Set("pinsChestOff", on, true) end end))
     add(1, toggle("Uçuş noktaları", "Rotandaki uçuş noktaları.",
         function() return not HM.db.pinsFpOff end, function(on) if HM.Pins then HM.Pins:Set("pinsFpOff", on, true) end end))
-    add(1, toggle("Ot noktaları", "Otların çıkabildiği noktalar (GatherMate2 verisi).",
-        function() return not HM.db.gatherHerbOff end, function(on) if HM.Gather then HM.Gather:Set("herb", on, true) end end))
-    add(1, toggle("Maden noktaları", "Madenlerin çıkabildiği noktalar (GatherMate2 verisi).",
-        function() return not HM.db.gatherOreOff end, function(on) if HM.Gather then HM.Gather:Set("ore", on, true) end end))
+    local herb = toggle("Ot noktaları", "Otların çıkabildiği noktalar (GatherMate2 verisi).",
+        function() return not HM.db.gatherHerbOff end, function(on) if HM.Gather then HM.Gather:Set("herb", on, true) end end)
+    herb.note = function()
+        if HM.Gather and HM.Gather:NoProfession("herb") then
+            return "meslek yok", "Bu karakterde Herbalism olmadığı için ot noktaları gizli. Yine de görmek için alttaki \"Yalnızca toplayabildiklerim\" satırını kapat."
+        end
+    end
+    add(1, herb)
+    local ore = toggle("Maden noktaları", "Madenlerin çıkabildiği noktalar (GatherMate2 verisi).",
+        function() return not HM.db.gatherOreOff end, function(on) if HM.Gather then HM.Gather:Set("ore", on, true) end end)
+    ore.note = function()
+        if HM.Gather and HM.Gather:NoProfession("ore") then
+            return "meslek yok", "Bu karakterde Mining olmadığı için maden noktaları gizli. Yine de görmek için alttaki \"Yalnızca toplayabildiklerim\" satırını kapat."
+        end
+    end
+    add(1, ore)
     add(1, toggle("Yalnızca toplayabildiklerim", "Açıkken mesleğin ve becerin yetmeyen ot/maden noktaları gizlenir. Kapatırsan hepsi görünür.",
         function() return HM.db.gatherSkillOnly and true or false end, function(on) if HM.Gather then HM.Gather:SetSkillOnly(on, true) end end))
 
@@ -208,6 +220,10 @@ local function rowTooltip(self)
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
     GameTooltip:SetText(HM:T(it.label), 1, 0.82, 0)
     GameTooltip:AddLine(HM:T(it.tip), 1, 1, 1, true)
+    if it.note then
+        local ok, _, why = pcall(it.note)
+        if ok and why then GameTooltip:AddLine(HM:T(why), 1, 0.82, 0.3, true) end
+    end
     GameTooltip:Show()
 end
 
@@ -358,10 +374,22 @@ function Menu:Refresh()
                 r.state:SetText(HM:T("yok"))
                 r.state:SetTextColor(0.5, 0.5, 0.5)
             elseif v then
-                setIcon(r.icon, "on")
+                local note
+                if it.note then
+                    local okN, text = pcall(it.note)
+                    if okN and type(text) == "string" then note = text end
+                end
                 r.label:SetTextColor(0.95, 0.95, 0.95)
-                r.state:SetText(HM:T("Açık"))
-                r.state:SetTextColor(0.35, 0.9, 0.35)
+                if note then
+                    -- açık ama şu an bir şey göstermiyor (ör. karakterde o meslek yok)
+                    setIcon(r.icon, "na")
+                    r.state:SetText(HM:T(note))
+                    r.state:SetTextColor(1, 0.82, 0.3)
+                else
+                    setIcon(r.icon, "on")
+                    r.state:SetText(HM:T("Açık"))
+                    r.state:SetTextColor(0.35, 0.9, 0.35)
+                end
             else
                 setIcon(r.icon, "off")
                 r.label:SetTextColor(0.62, 0.62, 0.62)

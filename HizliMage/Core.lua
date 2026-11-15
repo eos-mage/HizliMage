@@ -7,7 +7,7 @@ ns.HM = HM
 _G.HizliMage = HM
 
 HM.name = ADDON
-HM.version = "2.17.0"
+HM.version = "2.17.1"
 
 do
     local _, _, _, iface = GetBuildInfo()
@@ -232,6 +232,21 @@ local function atlasExists(name)
     return false
 end
 
+-- Dosya yolu istemcinin dosya listesinde var mı? true / false; denetlenemiyorsa nil.
+-- Yol uzantısız verilmişse .blp ve .tga uzantılı hâlleri de denenir.
+local function fileKnown(path)
+    if not GetFileIDFromPath then return nil end
+    local tries = { path }
+    if not path:match("%.%a%a%a$") then
+        tries[2], tries[3] = path .. ".blp", path .. ".tga"
+    end
+    for _, p in ipairs(tries) do
+        local ok, id = pcall(GetFileIDFromPath, p)
+        if ok and type(id) == "number" and id > 0 then return true end
+    end
+    return false
+end
+
 -- Dönüş: tür ("atlas" | "file" | "file?" | nil), değer
 function HM.ResolveIcon(cands)
     if type(cands) == "string" then cands = { cands } end
@@ -243,11 +258,9 @@ function HM.ResolveIcon(cands)
         local atlas = c:match("^atlas:(.+)$")
         if atlas then
             if atlasExists(atlas) then kind, value = "atlas", atlas; break end
-        elseif GetFileIDFromPath then
-            local ok, id = pcall(GetFileIDFromPath, c)
-            if ok and type(id) == "number" and id > 0 then kind, value = "file", c; break end
         else
-            kind, value = "file", c; break          -- denetlenemiyor: ilk dosyayı kullan
+            local known = fileKnown(c)
+            if known or known == nil then kind, value = "file", c; break end   -- nil: denetlenemiyor, ilk dosyayı kullan
         end
     end
     if not kind then
