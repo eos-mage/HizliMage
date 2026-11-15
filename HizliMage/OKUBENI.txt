@@ -1,16 +1,139 @@
-HIZLI MAGE v2.0 — Horde 1-60 görev-görev hızlı kasma rehberi (WoW Forever)
-=========================================================================
+Hızlı Mage v2.17 — Horde 1-60 görev-görev hızlı kasma rehberi (WoW Forever)
+==========================================================================
 
 Üç karakter için tek paket: Eos (Orc mage), Kael (Tauren druid), Thalor (Skyborne warrior).
 Eklenti giriş yapan karakterin sınıfına göre rotayı kendisi seçer.
 
-KURULUM
+Kurulum
 -------
-Klasörü şuraya kopyala (zaten buradaysa dosyaların üzerine yaz):
-  C:\World of Warcraft\_forever_\Interface\AddOns\HizliMage\
-Oyun içinde: /reload (ya da giriş ekranında AddOns listesinde "Hizli Mage" işaretli olsun).
+İki klasör:
+  C:\World of Warcraft\_forever_\Interface\AddOns\HizliMage\        eklentinin kendisi
+  C:\World of Warcraft\_forever_\Interface\AddOns\HizliMage_Veri\   veri: ot/maden noktaları, rare eşyaları
+Giriş ekranındaki AddOns listesinde "Hizli Mage" ve "Hizli Mage - Veri" işaretli olmalı.
+Dosya değiştiyse /reload yeter. YENİ dosya ya da klasör geldiyse oyunu tamamen kapatıp aç (istemci yeni dosyaları
+yalnızca açılışta görür).
 
-NE DEĞİŞTİ (v2.0)
+Menü, harita pinleri ve hata kaydı (v2.17)
+------------------------------------------
+Komut ezberlemek gerekmez. Rehber penceresinin altındaki "Menü" düğmesi, başlıktaki çark ya da /hm menu
+tıklanabilir menüyü açar: her satır tek tıkla açılır/kapanır, üstünde beklersen ne işe yaradığını yazar, Esc kapatır.
+
+Harita pinleri (dünya haritasında):
+- Rare moblar: çıktıkları noktalar. Üstüne gelince seviye, yaklaşık yeniden doğma aralığı, bu karakterin o rare'i
+  en son ne zaman canlı/ölü gördüğü ve düşürdüğü eşyalar (kalite renginde; Wowhead verisi varsa yüzdesiyle).
+- Hazine sandığı noktaları: sandığın çıkabildiği yerler. Sandık her zaman orada olmaz; noktalardan birinde çıkar.
+- Ot ve maden noktaları: çıkabildikleri yerler. "Yalnızca toplayabildiklerim" açıkken becerin yetmeyenler gizlenir.
+- Uçuş noktaları: rotandaki uçuş görevlileri.
+- "Bu bölgede ne var?" (menü) ya da /hm sayac: bulunduğun bölgede kaç rare, sandık, ot ve maden noktası olduğunu yazar.
+Yeniden doğma süreleri resmî değer değildir: klasik sunucu verisi ve oyuncu bildirimlerinden gelen yaklaşık aralıktır.
+Ot/maden ve sandık pinleri "burada şu an var" demek değildir; "burada çıkabilir" demektir.
+
+Haber ve uyarılar:
+- Yakında haber: bir ot ya da maden noktasına 40/60/80 yarda yaklaşınca sohbete tek satır düşer, kısa ses çalar.
+- Rare görünce haber: hedef aldığında, fareyle üstüne geldiğinde ya da isim plakası görününce adını ve eşyalarını yazar.
+- Mob seviye uyarısı: hedefin XP vermeyecek kadar düşükse (gri) ya da tehlikeliyse (turuncu/kırmızı/kafatası/elit) yazar.
+- Zindana girince bu hatırlatmalar kendiliğinden susar; çıkınca geri gelir. Ayarların değişmez.
+
+Dinlenme (zzz) göstergesi: EllesmereUI oyuncu çerçevesinde "Rested Indicator" seçeneği varsayılan kapalıdır.
+Eklenti bunu ilk girişte bir kez açar; han ya da şehirde portrenin üstünde zzz görünür. Menü > Görünüm'den kapatılır.
+
+Hata kaydı: eklentinin yakaladığı hatalar sessizce kaydedilir. Bir şey çalışmıyorsa Menü > Hata kaydı (ya da
+/hm hata) ne olduğunu yazar; /hm hata temizle siler. Sorun bildirirken bu çıktı yeter.
+
+Sohbeti kopyala: Menü > Sohbeti kopyala (ya da /hm kopya) seçili sohbet sekmesinin son 500 satırını düz metin
+olarak bir pencerede açar: Ctrl+A, Ctrl+C.
+
+Güncelleme: C:\World of Warcraft\HizliGuncelle.cmd diğer eklentilerle birlikte Hızlı Mage'i de denetler. GitHub'daki
+sürüm bilgisayardakinden YENİYSE kurar, eskiyse ya da aynıysa dokunmaz; kurmadan önce eski klasörü yedekler.
+
+Kamp ve meslek buff'ları (v2.8)
+-------------------------------
+WoW Forever'da meslekler kamp ateşine konan eşyalarla buff verir. Kurallar:
+- Kamp ateşini Cooking kurar: Basic Campfire Kit (1 Simple Wood; çantada Flint and Tinder olmalı). Şehirde kurulmaz.
+- Her oyuncu bir ateşe kendi mesleğinden tek eşya koyar; bütün kamp eşyaları ortak 1 saat bekler.
+- Ateşin yanında 1 dakika oturan (/sit) herkes kamptaki bütün etkileri tek buff olarak alır (Camp Benefits, 1 saat).
+  Başkasının kampı da olur: yolda gördüğün her kampa otur.
+- Kamp buff'ı aynı işi gören sınıf buff'ının zayıf kopyasıdır, onunla üst üste binmez.
+- 1. kademe eşyanın tarifi meslek 20 olunca eğitmenden 1 gümüşe ya da "Camping 101" göreviyle öğrenilir.
+Eşyalar (60. seviye değerleri): Alchemy Mana Well (5 sn'de 29 mana), Blacksmithing Sharpening Wheel (Strength +34),
+Enchanting Enchanted Lute (zırh +308, bütün statlar +13), Engineering Reagent Bot (satıcı, buff değil), Herbalism
+Incense Candle (Intellect +25), Leatherworking Camp Tent (rested XP'yi seviyenin yüzde 5'ine tamamlar), Mining
+Lodestone (yakın dövüş saldırı gücü +90), Skinning Camp Chair (kritik +yüzde 2), Tailoring Faction Banner
+(Spirit +32), First Aid Kit (Stamina +56), Fishing Fish Bowl (bütün statlar +yüzde 8).
+Rehber ne yapar:
+- Mesleklerini ve çantanı okur, sınıfına yarayan eşyayı seçer. Mage'e Incense Candle (Arcane Intellect ile çakışır)
+  ve Lodestone yaramaz; druid'e Enchanted Lute (Mark of the Wild ile çakışır) yaramaz.
+- Eşyan hazır, bekleme bitmiş ve kamp buff'ın yoksa pencerenin alt satırında ve sohbette "Kamp zamanı" yazar.
+  Yakında kamp ateşi varsa "otur" der. Durum satırındaki "Kamp 42 dk" buff'ın kalan süresidir.
+- Bulunduğun kasabada kamp işi varsa (tarif öğrenmek, odun ya da şişe almak) alt satırda "Kamp işi" olarak yazar.
+- /hm kamp: neyin hazır, neyin eksik, sırayla yapılacaklar. /hm kamp git oku ilk işe çevirir.
+  /hm kamp sec firstaid eşyayı elle seçer (oto geri alır). /hm kamp sessiz hatırlatmayı kapatır.
+- Kamp görevleri (The Great Outdoors, Camping 101: ...) rota dışında da otomatik alınır ve teslim edilir.
+- Kael ve Thalor'un rotasına başlangıç köyündeki kamp görevleri eklendi (The Great Outdoors, Camping 101: Cooking;
+  Thalor'da The Adventurer ön görevi de). Eos bunları bitirdiği için mage rotası değişmedi.
+- Meslek puanları Forever'ın kendi arayüzünden okunuyor; "Meslek sınırı" uyarısı da artık buna göre çalışır.
+- /hm xp yemek, uyku tulumu, rested ve kamp buff'ını tek yerde gösterir; /hm xp nasil eksik olanın nasıl alınacağını yazar.
+Kasmada en değerlisi Camp Tent: saatte bir rested XP'yi seviyenin yüzde 5'ine tamamlar, ama Leatherworking 20 ister.
+Sayılar beta verisinden; oyun içi ipucu esastır. Oyun içinde denenmedi: hata görürsen metnini gönder.
+
+Teleport ve temizlenmiş rota (v2.7)
+-----------------------------------
+Mage (Eos), 20. seviyeden sonra:
+- Orgrimmar'daki 20. seviye eğitiminde rehber seni portal eğitmeni Thuul'a götürür: Teleport: Orgrimmar öğren.
+  Undercity'ye ilk gidişinde (25) Lexington Mortaim'den Teleport: Undercity. Adım büyüyü öğrenince geçer.
+- Her ışınlanma bir Rune of Teleportation harcar (Orgrimmar: Horthus, Undercity: Hannah Akeley). Durum satırında
+  "Rune N" yazar; 3'ün altı kırmızı. Rune ya da büyü yoksa adım "uçarak git" der ve oku uçuş görevlisine çevirir.
+- [Git] Teleport: X kullan: başkente dönüşlerde ve kıta değişimlerinde uçuş/zeplin yerine ışınlanma.
+  Uzak bölgeye giderken "ışınlan, başkentten uç" doğrudan uçuştan en az 45 sn hızlıysa o seçilir.
+- Işınlanma iniş noktası mage eğitmenlerinin yanında: başkentten her geçişte (2+ seviye birikmişse) [Eğitmen] adımı gelir.
+- Işınlanmayı kullanmayıp doğrudan uçarsan da olur: vardığında zincirin kalan adımları kendiliğinden geçer.
+Üç karakter için:
+- Tek başına bitmeyen görevler (elit yaratık, zindan içi, savaş alanı nişanı, meslek/AH eşyası) artık rotada yok.
+  Eski rota bunları hedef adımı olmadan "al, teslim et" diye yazıyordu.
+- Önce malzeme isteyen görevlerde ayrı durak var: "Sunscale Feather (topla)" → çantada 3/3 olunca yuvalara geçer;
+  Ishamuhale için önce Fresh Zhevra Carcass.
+- Sınıf görevleri bölüm ortasında başka kıtaya yollamaz. Form/stance verenler kaldı (Bear Form zinciri Moonkin
+  Stone dahil, Defensive ve Berserker Stance); zırh/silah zincirleri (Brutal, Whirlwind, Tabetha'nın asa görevleri) çıkarıldı.
+- Bölgeden uçarak çıkarken hangi uçuş görevlisinden çıkılacağı plana dahil; başkentlerin uçuş noktaları da rotada.
+- Eşyayla başlayan görevlerden nadir çıkan yaratığa ya da düşük şansa bağlı olanlar (OOX işaretçileri, The Harvester
+  vb.) rotada yok; adı belli tek bir yaratıktan düşenler duruyor.
+- Warrior: başkentten her geçişte (2+ seviye birikmişse) eğitmen adımı gelir. Druid'in Orgrimmar ve Undercity'de
+  eğitmeni yok; rota oralarda eğitmen adımı yazmaz (Teleport: Moonglade ile Loganaar ya da Thunder Bluff).
+- Uyku tulumu (Cozy Sleeping Bag, +%3 XP) zinciri rotada baştan sona var: Burned-Out Remains (Barrens, Taurajo
+  güneyi) → Pocket Litter ve Mound of Dirt (Stonetalon) → Hillsbrad'den sonra iki kısa bölüm: Loch Modan barajındaki
+  Carved Figurine ve Arathi'de Thoradin Duvarı'ndaki Messenger Bag. Loch Modan Alliance bölgesi; yol tarifi adımın
+  notunda. Tulumu istemiyorsan Wet Job görevini bırak: iki bölüm kendiliğinden geçer. /hm xp metnindeki Westfall adımı yanlıştı, düzeltildi.
+- Bir bölümün bütün görevleri bitmiş, bırakılmış ya da atlanmışsa rehber o bölgeye "git" demez, sonraki bölüme geçer.
+- "Uçarken buff isteme" değişikliği bu sürümle gerçekten geldi (önceki yazımda dosyaya girmemişti).
+Bilinen sınır: iki bölgeye yayılan diğer görevler (ör. Undercity'de alınıp Felwood'da yapılanlar) henüz rotada değil.
+
+Akıllı yol tarifi (v2.6.1) — plan dışına çıkınca rehber kendini uyarlar
+-----------------------------------------------------------------------
+- Hearthstone'u erken kullandın, öldün ya da başka yerden döndün: uçuş / hearth adımları bulunduğun yere göre
+  yeniden hesaplanır. Sıradaki işe artık yürümek daha kısaysa "X noktasına uç" adımı kendiliğinden geçer.
+- Uçman gerekiyorsa ok plandaki değil, sana en uygun uçuş görevlisini gösterir ("Uçuş görevlisi: Devrak (Crossroads)").
+- Herhangi bir adımın hedefi uzaksa ve uçmak belirgin kısaysa pencere "Uçarak git: ..." der; inince ok hedefe döner.
+- Uçuş haritasını her açtığında açık noktaların kaydedilir; açmadığın noktadan uçuş önerilmez.
+- Hearthstone'u kullandığında bağlı olduğun gerçek han öğrenilir (rotadaki handan farklıysa uyarı ona göre çıkar).
+- [Teslim] adımında görevin hedefleri bitmemişse rehber orada beklemez: "Geçildi" yazıp devam eder.
+- Tek başına bitmeyen görevler (elit yaratık, zindan, savaş alanı nişanı, meslek/AH eşyası) rotadan çıkarıldı:
+  rehber bunları almaz, "Atlandı: ..." diye nedenini yazar. Grup bulursan elle alabilirsin.
+
+Yeni rota planı (v2.6) — daha az yürüyüş
+----------------------------------------
+Rotalar baştan planlandı: her bölgenin bütün görevleri (zincirlerin sonraki halkaları dahil) tek seferde
+hesaplanıyor; al / yap / teslim noktaları en kısa tura diziliyor, aynı mobu isteyen görevler aynı durakta birleşiyor.
+- [Git] Hearthstone kullan (...): uzun dönüş yürüyüşü yerine hearth. Pencerede "hazır" ya da kalan bekleme
+  süresi yazar; beklemedeyse yürü. Plan 60 dk bekleme süresine göre kuruldu.
+- Hearthstone hazırken hedefin bağlı hanın dibindeyse pencere ayrıca "Hearthstone hazır: ~N yd yürümezsin" der.
+- [Git] X noktasına uç: aynı bölgede iki uçuş noktası arasında yürümek yerine uçuş (ok önce uçuş görevlisini gösterir).
+- Hedefleri iki ayrı yerde olan görevlerde adım, o duraktaki hedef bitince kendiliğinden geçer.
+- Aynı anda en çok 16 görev taşınır (zindan görevlerine günlükte yer kalsın).
+- Rota güncellenince eklenti kaldığın yeri görev durumundan kendisi bulur ("Rota yenilendi" mesajı).
+- Yolu XP'sine değmeyen birkaç uzak görev rotada yok; endgame zincirlerindeki görevler bu elemeden muaf.
+- /hm zindanpin: haritadaki zindan görev verenlerini (Questie) gizle/göster.
+
+Ne değişti (v2.0)
 -----------------
 - Rota artık hub notları değil, görev-görev adımlardan oluşur (yaklaşık 1300 adım, 430-490 görev).
   Adımlar QuestieDB'nin Forever verisinden üretildi: Zephras Isle, Forever'ın yeni görevleri ve
@@ -27,7 +150,50 @@ NE DEĞİŞTİ (v2.0)
   almadan konuşursun (yumuşak hedefleme ayarlarını da açar).
 - Pencerede sıradaki 3 adım gri görünür; [Yap] adımında görev hedeflerinin sayacı yazılır.
 
-KOMUTLAR
+Minimap koordinatı ve harita ölçeği (v2.10)
+-------------------------------------------
+Minimap'in altında küçük bir "X.X, Y.Y" kutusu açıldı, yarım saniyede bir güncellenir, sarı renkte. Kapatmak için
+|cffffd100/hm koord|r.
+Dünya haritası varsayılan olarak %125 ölçekle açılır (daha yakın görünür). Değiştirmek için |cffffd100/hm harita 1.3|r
+(0.7-2.0 arası); |cffffd100/hm harita kapat|r 1.0'a döner; |cffffd100/hm harita isaret|r eski işlev (Blizzard harita işareti çevir).
+Harita başka bir eklenti ölçeği sıfırlıyorsa 1 ve 3 saniye sonra tekrar uygulanır.
+
+
+Kütüphane kitapları ve Study (v2.9)
+-----------------------------------
+Haritada 32 kitap nesnesi (raf, tomar, kitap) var; her birini tıklayıp alır, Undercity Magic Quarter'da
+Owen Thadd (73.4, 33.0) adlı NPC'ye teslim edersin. Milestone'lar birikerek açılır:
+- 10 kitap: Scholarly Pendant (+3 Sta +2 Spi, 25'te giyilir) ya da Erudite's Amulet.
+- 20 kitap: Philanthropist's Ring (+5 Int +10 Spell Power, 40'ta giyilir) ya da Field Researcher's Loop.
+- 25 kitap: 30. seviye görev zinciri (silah/muska/off-hand).
+- 32 kitap: Research Access — mage'in Comprehension becerisi tam açılır, scroll bundle değil kendi scroll'larını yaparsın.
+Study mage'e özel (6. seviye, Un'Thuul öğretir ücretsiz): Light Feather kullanarak kütüphane içinde 6 sn okuma,
+1 saat bekleme, Bundle of Scrolls çıkar. Scroll'lar arasında Minor Evocation (mana), silah imbue'ları (1 saat hasar),
+Rat/Frog/Cat Familiar (+Int buff), Khadgar's Unlocking (125'e kadar lockpick), Comprehension (eski dilleri çevirir).
+Rehber ne yapar:
+- Yakında kitap varsa (250 yd içi, aynı harita) pencerenin alt satırında ve sohbette "Kitap: yakında X" yazar.
+  Hatırlatma aynı kitap için bir kez; uzaklaşıp dönünce tekrar söyler.
+- Durum satırında "Kitap N/32" sayacı. 20+ sonra yeşil.
+- /hm kitap: milestone durumu, yakındaki kitap, haritadaki kitap sayısı, mage için Study durumu.
+- /hm kitap git: ok en yakın bitmemiş kitaba. Bitmiş kitaplar atlanır (teslim edilen görev kayıt sayılır).
+  Haritada kalan kitap yoksa ve en az bir kitap teslim ettiysen ok Owen Thadd'a döner.
+- /hm kitap tum: 32 kitabın tamamı, hangisi bitmiş hangisi değil.
+- /hm kitap sessiz: hatırlatmayı kapat/aç.
+- /hm xp çıktısında kitap satırı da görünür (10/20/25 milestone sayacı).
+Eos'un üç mesleği Herbalism, Mining, Fishing ve First Aid birazı Study için gerekmez; Study için yalnız 6. seviyede
+mage eğitmeni Un'Thuul'u ziyaret (ücretsiz) yeterli. İlk teslim ve Study Undercity Magic Quarter'da yapılır.
+Kael ve Thalor için Study yok ama milestone ödülleri her sınıfa uygun — 20/+5 Int yüzük yerine 20/+40 Attack Power
+muadil yüzük verilir (Field Researcher's Loop).
+Horde-güvenli 1-20 kitaplar (tamamı rotanın üzerinde ya da bir sapma uzaklıkta):
+  Orgrimmar (Darkbriar Lodge 38.7, 78.4), Tirisfal (Brill 59.4, 52.3),
+  Silverpine (Amber Mill 63.5, 63.2 ve Sepulcher 43.4, 41.2),
+  Barrens (Sludge Fen 56.3, 8.8; WC dışı 49.3, 32.9; Ratchet 62.7, 36.3),
+  Stonetalon (güney 74.4, 85.7).
+Bu 8 kitap artı 2 sapmayla 10 milestone kolay geçilir; 25'e varmak için Thousand Needles, Desolace, Arathi,
+Badlands, Dustwallow gibi contested bölgelerde de birkaç kitap toplanır. Sayılar oyun içinde teyit edilmedi.
+
+
+Komutlar
 --------
 /hm                 pencereyi aç/kapat          /hm ok          yön okunu aç/kapat
 /hm ileri | geri    adım değiştir               /hm tamam       adımı bitir / atla
@@ -38,22 +204,119 @@ KOMUTLAR
 /hm sat | tamir     gri eşya sat / tamir        /hm egitim      akıllı büyü satın alma
 /hm atla Scorch     büyüyü atlama listesine     /hm hedef 100   binek altın hedefi
 /hm su 10           minimum su                  /hm bez         60 için bez stoku
-/hm talent          talent önerisi              /hm rank        bardaki eski rank'lar
+/hm talent [tum|35] talent önerisi / 10-60 planı /hm talent oto  otomatik talent aç/kapat
+/hm talent uygula   plandaki eksik puanları şimdi al /hm rank        bardaki eski rank'lar
 /hm canta           çantadaki en değersiz eşya  /hm harita      Blizzard harita işareti
 /hm ascii           Türkçe harf sorunu için     /hm boyut 0.9   pencere ölçeği
 /hm sifirla         konum ve adımı sıfırla      /hm debug       hata ayıklama
+/hm duzen           arayüzü düzenle (altta)     /hm duzen sifirla  düzeni geri al
+/hm kapat Plater    eklentiyi kapat (/reload)   /hm ac Plater   eklentiyi aç (/reload)
+/hm ne              fare altındaki çerçeve adı  /hm gizle <ad>  çerçeveyi gizle (goster geri açar)
+/hm foto            oyun içi ekran görüntüsü   /hm makro       odak makroları (Koyun, Odak, OdakKes)
+/hm grafik          en iyi görüntü ayarları    /hm grafik durum  mevcut değerler ve FPS
+/hm kamp            meslek kamp eşyaları, kamp buff'ı /hm kamp git   oku sıradaki kamp işine çevir
+/hm xp              XP buff durumu              /hm xp nasil    eksik XP buff'ı nasıl alınır
+/hm kitap           kütüphane kitabı takibi (32)/hm kitap git   oku en yakın kitaba ya da teslim NPC'sine
+/hm harita 1.3      dünya haritasını büyüt     /hm koord       minimap koordinatlarını kapat/aç
 
-İPUÇLARI
---------
-- Shift basılıyken otomatik görev alma devre dışıdır (ödül seçmek ya da bir görevi almamak için).
-- Başlığa tıklarsan ok tekrar adımın hedefine döner; "Kas" oku kasma noktasına çevirir.
-- Rota tahmini seviyeyle üretildi; görevler sarı/kırmızı kalıyorsa [Kas] adımındaki yere git ya da
-  bir önceki bölgenin kalan görevlerini yap.
-- Rotayı değiştirmek istersen: rota dosyaları (Route_MAGE.lua vb.) üretilmiş veridir; isteğin
-  üzerine yeniden üretilir.
+Arayüz düzeni (/hm duzen)
+-------------------------
+EllesmereUI + Questie + Details! ile çakışmaları giderir ve pencereleri şöyle dizer:
+- Sol üst: Hızlı Mage rehber penceresi. Köşede mikro menü ve çanta çubuğu (küçültülmüş, fare gelince görünür).
+- Üst orta: yön oku. Sağ üst köşe: büyütülmüş minimap (240 px, köşeye yapışık), altında Questie görev
+  takipçisi (sağ kenardaki dikey çubukların solunda). Blizzard'ın kendi görev takipçisi gizlenir.
+- Oyuncu çerçevesi biraz daha geniş (200 px); can ve mana çubukları eşit yükseklikte (28/28) ve ikisinde de % yazısı.
+- Alt orta: aksiyon çubukları 1-3 küçük düğmeli (34 px) tek blok, altında blok genişliğinde XP çubuğu.
+- Orta: cast bar karakterin altında, oyuncu ile hedef çerçevesinin arasında; onun altında sırayla
+  Cooldowns, Utility ve takip edilen buff (Buffs) çubukları. Focus çerçevesi oyuncu çerçevesinin solunda.
+- Sol alt köşe: sohbet. Sağ alt köşe: tek hasar ölçer olarak Details! (330x170); Forever'ın yerleşik
+  hasar ölçeri gizlenir, fazladan Details pencereleri kapatılır.
+Konumlar Questie, Details ve EllesmereUI'nin kendi profillerine yazılır; mikro menü ve çanta için
+"HizliMage" adlı bir Edit Mode düzeni oluşturulup etkinleştirilir. /reload ve yeniden girişte kalır.
+Eklenti güncellemesiyle düzen sürümü artarsa girişte bir kez kendiliğinden yeniden uygulanır
+(ve doğrulama için Screenshots klasörüne bir ekran görüntüsü alır). /hm duzen her zaman bu yerleşime döner;
+ince ayar için EllesmereUI'nin kendi Unlock modunu kullanabilirsin.
+Çakışan EllesmereUI modülleri kapatıldı: EllesmereUIDamageMeters, EllesmereUIQuestTracker,
+EllesmereUIBags (Bagnon kullanılıyor) ve Plater (Ellesmere isim plakaları kullanılıyor).
+Geri açmak için: /hm ac EllesmereUIDamageMeters  (sonra /reload)
 
-ÖNERİLEN EKLENTİ PAKETİ (Forever uyumlu sürümlerini kur)
+Zindan uyarıları (v2.2) — üç karakter için
+-------------------------------------------
+Ekranın üst ortasında, okun altında büyük bir Türkçe uyarı şeridi çıkar (sesli). Sınıfa göre uyarlanır:
+- KES: hedefin/odağın/patronun kesilebilir büyüsü. Eos (mage) Counterspell; Thalor (warrior) Pummel (Berserker
+  duruşu) ya da Shield Bash (kalkanla, Battle/Defensive); Kael (druid) ayı formunda Bash / Feral Charge.
+  Yetenek hazırsa kırmızı "KES", bekliyorsa süresi, duruş/form uygun değilse "Berserker duruşuna geç" gibi ipucu.
+- DİKKAT: kesemediğin tehlikeli büyü (iyileştirme, uyku, korku, zihin kontrolü, ağır hasar) — yer değiştir.
+- ÇÖZ: sende ya da grup arkadaşında çözebileceğin lanet/zehir: mage Remove Lesser Curse, druid Remove Curse ve
+  Cure/Abolish Poison (warrior'da yok).
+- ÇAL: mage'de Spellsteal varsa hedefteki çalınabilir buff; yoksa önemli buff'lar (Lightning Shield, PW:Shield,
+  Renew, Bloodlust...) "şifacı/şaman dispel edebilir" bilgisiyle.
+- PATRON: patronu hedef alınca o patronun notu, sınıfa göre yazılmış (mage: Blink/Frost Nova/Polymorph;
+  warrior: Charge/Thunder Clap/Intimidating Shout; druid: form değiştir/Swipe/Hibernate).
+  RFC'den Dire Maul'a Horde kasma zindanları hazır; büyü adları İngilizce (oyun dili), yanına Türkçesi yazılır.
+Komutlar: /hm uyari (durum)  /hm uyari ac|kapat|ses|plaka|buff|not|coz|test   /hm notlar [zindan]   /hm cast [NPC]
+Gördüğü her düşman büyüsünü NPC adına göre kaydeder (/hm cast): Forever'ın yeni zindanları için zamanla kendi
+notun oluşur. Patron zamanlayıcıları için DBM-Core + DBM-Dungeons (Forever sürümleri) ile birlikte kullan.
+
+Can yazıları ve elit uyarısı (v2.3, düzen sürümü 14)
+-----------------------------------------------------
+- Oyuncu/hedef/odak çerçevesinde can "sayı | %" olarak yazılır; hedef çerçevesinde elit/nadir rozeti.
+- Düşman isim plakaları açık (V tuşuyla kapatılabilir): solda seviye, ortada can sayısı, sağda %, üstte elit simgesi.
+- Elit, nadir ya da dünya patronu bir mobu hedef alınca turuncu uyarı şeridi + ses (aynı mob için bir kez).
+- DPS denetimi (/hm dps): istemci ayarlarını düzeltir (tuşa basınca büyü, 400 ms büyü kuyruğu, kendine otomatik
+  büyü, otomatik yağma), rank/talent/buff/ekipman/bar/erzak kontrolü yapar; girişte sorun sayısını söyler.
+- Proc göstergesi (/hm proc): karakterin üstünde büyük yazı — Fingers of Frost ya da hedef donunca "ICE LANCE",
+  Clearcasting'de "BEDAVA BÜYÜ", Missile Barrage'da "ARCANE MISSILES", Winter's Chill sayacı ve 5/5'te "CONE OF COLD!".
+- Rank güncelleme: yeni rank öğrenilince bardaki eski rank'lar kendiliğinden değişir (EllesmereUI Uprank açık
+  tutulur; yoksa HizliMage kendisi değiştirir, savaştaysan savaş bitince). /hm rank durumu yazar.
+
+Darkmoon Faire takibi (v2.4)
+-----------------------------
+/hm faire          Faire takvimi ve durumu (bu ay açık mı, Mulgore mu Elwynn mu, Sayge buff'in var mı)
+/hm faire sayge    Sayge buff rehberi: hangi buff için hangi cevapları vereceksin (+10% Hasar = 1-1)
+/hm faire bilet    Bilet malzemesi çanta sayacı (Small Furry Paw, Torn Bear Pelt vb. kaç adet var, kaç teslim hazır)
+Giriş hatırlatması: Faire açıkken ya da 2 gün kala uyarır, Sayge buff'ın yoksa hatırlatır.
+
+Zindan görev rehberi (v2.4)
+----------------------------
+/hm zindan         Seviyene uygun tüm zindanları görev sayılarıyla listeler (alınmış/mevcut)
+/hm zindan rfc     Belirli bir zindan: tüm Horde/Neutral görevleri, NPC'ler, nereden alınır, ön koşullar
+Desteklenen zindanlar: RFC, WC, SFK, BFD, RFK, Gnomer, SM, RFD, Ulda, ZF, Mara, ST, BRD, DM, Scholo, Strat.
+Girişte: seviyeye uygun zindanın alınmamış görevleri varsa hatırlatır.
+Not: Forever'da zindan görevleri çok XP verir; girmeden önce tüm görevleri al!
+
+Görüntü ayarı (/hm grafik) — Alienware AW3225QF 4K OLED
+--------------------------------------------------------
+/hm grafik          Ultra ön ayar: 3840x2160 yerel çözünürlük, MSAA 4x + CMAA2, 16x doku filtresi, gölge 5 / 4096,
+                    SSAO ultra, görüş mesafesi 10, parçacık ve büyü yoğunluğu tam, kumaş fiziği; hesap geneli.
+/hm grafik ssaa     Üstüne %140 render ölçeği (üst örnekleme): en net görüntü, GPU'ya en yüklü.
+/hm grafik dengeli  FPS düşerse: kalite 7, MSAA 2x + CMAA2, gölge 3.
+/hm grafik durum    Mevcut değerler ve FPS.
+Not: WoW HDR çıkışı desteklemez; monitörü SDR modunda, Windows HDR kapalı kullan. 240 Hz + G-Sync için vsync açık
+kalabilir (oyun içi vsync=1); takılma hissedersen vsync'i kapatıp /console maxFPS 237.
+
+Mage talent planı (/hm talent, /hm talent tum) — Forever Frost ağacı
+----------------------------------------------------------------------
+OTOMATİK (v2.3): seviye atladığında plandaki talent kendiliğinden alınır ve chat'e "Talent öğrenildi: Precision (2/3)"
+yazılır (savaştaysan savaş bitince). Girişte harcanmamış puan varsa plan tamamlanır. /hm talent oto kapatır/açar,
+/hm talent uygula eksikleri şimdi alır, /hm talent api ağaç eşleşmesini gösterir. İstemci otomatik almayı
+engellerse tek tıklık "Talent'i öğren" düğmesi çıkar.
+10-14 Improved Frostbolt 5/5     15-17 Frostbite 3/3            18-19 Precision 2/3
+20    Ice Lance                  21    Precision 3/3            22-24 Ice Shards 3/5
+25-27 Shatter 3/3                28-29 Ice Shards 5/5           30-31 Fingers of Frost 2/2
+32    Ice Block                  33    Cold Snap                34-36 Frost Channeling 3/3
+37-38 Improved Frost Nova 2/2    39    Arctic Reach 1/2         40    Ice Barrier
+41    Arctic Reach 2/2           42-44 Permafrost 3/3           45-49 Winter's Chill 5/5
+50-52 Improved Cone of Cold 3/3  53-55 Improved Blizzard 3/3    56-57 Frost Warding 2/2
+58-60 Arcane Resilience 3/3 (serbest) — 60'ta raid build'i 18/0/33'e sıfırla.
+Oynanış: Frostbolt doldurucu; donmuş hedefe (Frostbite, Frost Nova, Fingers of Frost) Ice Lance + Shatter kriti.
+45'ten sonra 5 Frostbolt → Winter's Chill yığını → Cone of Cold ile bitir. Ice Block'u Cold Snap ile sıfırla.
+Forever ağacında Piercing Ice ve Elemental Precision yok; Precision 3/3 = +6% isabet. Her satır üsttekilere
+5 puan ister (2. sıra 15, 3. sıra 20, 4. sıra 25, 5. sıra 30, 6. sıra 35, 7. sıra 40. seviye).
+
+Önerilen eklenti paketi (Forever uyumlu sürümlerini kur)
 --------------------------------------------------------
 Zorunlu:   HizliMage (bu), Questie (Forever), Auctionator, AtlasLoot Classic Forever
+Zindan:    DBM-Core + DBM-Dungeons (Forever dosyaları), GTFO (yerde durma sesi)
 Rahatlık:  Bagnon, Details!, Leatrix Plus (Forever), Dialogue UI, MapUtils, What's Training
 Arayüz:    EllesmereUI (tam paket, Forever için) ya da ElvUI Forever (Tukui'den) + Plater (isim plakası)

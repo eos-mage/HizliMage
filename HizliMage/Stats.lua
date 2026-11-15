@@ -43,13 +43,20 @@ function Stats:XPText()
     local level = HM:Level()
     if level >= 60 then return "60. seviye: kasma bitti." end
     local xp, max = UnitXP("player") or 0, UnitXPMax("player") or 1
+    local rem = max - xp
+    local pct = math.floor(xp / max * 100)
     local rate = self:Rate()
-    local eta = (rate > 0) and ((max - xp) / rate * 3600) or nil
+    local eta = (rate > 0) and (rem / rate * 3600) or nil
     local rested = GetXPExhaustion and GetXPExhaustion() or 0
     local parts = {}
-    parts[#parts + 1] = string.format("XP/sa %s", rate > 0 and HM:Short(rate) or "—")
-    parts[#parts + 1] = string.format("Seviyeye %s", eta and HM:Duration(eta) or "—")
-    parts[#parts + 1] = string.format("%%%d", math.floor(xp / max * 100))
+    -- İlk göze çarpan: kalan XP ve yüzde.
+    parts[#parts + 1] = string.format("Kalan %s XP (%%%d)", HM:Short(rem), pct)
+    if rate > 0 then
+        parts[#parts + 1] = string.format("XP/sa %s", HM:Short(rate))
+    end
+    if eta then
+        parts[#parts + 1] = string.format("Seviyeye %s", HM:Duration(eta))
+    end
     if rested and rested > 0 then
         parts[#parts + 1] = string.format("Dinlenmiş %%%d", math.floor(rested / max * 100))
     end
@@ -102,3 +109,36 @@ end)
 
 HM:On("PLAYER_XP_UPDATE", onXP)
 HM:On("PLAYER_MONEY", onMoney)
+
+-- WoW'un kendi XP barının (MainMenuExpBar) tooltip'ine "Kalan XP" ve ETA ekle.
+HM:OnLogin(function()
+    local bar = _G.MainMenuExpBar or _G.StatusTrackingBarManager
+    if not bar or not bar.HookScript then return end
+    local function enrich()
+        if HM:Level() >= 60 then return end
+        local xp = UnitXP("player") or 0
+        local max = UnitXPMax("player") or 1
+        local rem = max - xp
+        local pct = math.floor(xp / max * 100)
+        local rested = GetXPExhaustion and GetXPExhaustion() or 0
+        if not GameTooltip:IsShown() then
+            GameTooltip:SetOwner(bar, "ANCHOR_CURSOR")
+            GameTooltip:AddLine("XP", 1, 0.82, 0)
+        end
+        GameTooltip:AddLine(string.format("|cff80ff80Seviyeye kalan:|r %s XP (%%%d)", HM:Short(rem), pct), 1, 1, 1)
+        if rested and rested > 0 then
+            GameTooltip:AddLine(string.format("|cff8080ffDinlenmiş:|r %s XP", HM:Short(rested)), 1, 1, 1)
+        end
+        local rate = Stats:Rate()
+        if rate > 0 then
+            local eta = rem / rate * 3600
+            GameTooltip:AddLine(string.format("|cffffd100Son 15 dk hız:|r %s XP/sa  →  %s", HM:Short(rate), HM:Duration(eta)), 1, 1, 1)
+        end
+        GameTooltip:Show()
+    end
+    pcall(bar.HookScript, bar, "OnEnter", enrich)
+    -- Eski WoW istemcilerinde ExhaustionTick (dinlenme kabarcığı) kendi tooltip'ini açar.
+    if _G.ExhaustionTick and _G.ExhaustionTick.HookScript then
+        pcall(_G.ExhaustionTick.HookScript, _G.ExhaustionTick, "OnEnter", enrich)
+    end
+end)

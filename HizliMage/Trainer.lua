@@ -67,6 +67,34 @@ function Trainer:TalentHint(level, force)
     end
 end
 
+-- /hm talent tum: 10-60 planını satır satır, ardışık seviyeleri birleştirerek yazar.
+function Trainer:TalentPlan()
+    local my = HM:Level()
+    HM:Print("Talent planı (" .. (ns.CD and ns.CD.label or "") .. ") — yeşil: bulunduğun seviye")
+    local from, lastName, lastText
+    local function flush(to)
+        if not lastName then return end
+        local lvl = (from == to) and tostring(from) or (from .. "-" .. to)
+        local mark = (my >= from and my <= to) and "|cff80ff80" or "|cffffd100"
+        HM:Print("  " .. mark .. lvl .. "|r  " .. lastText)
+    end
+    for lvl = 10, 60 do
+        local text = ns.Talents[lvl]
+        if text then
+            local name = text:match("^(.-)%s*%(") or text
+            if name ~= lastName then
+                flush(lvl - 1)
+                from, lastName = lvl, name
+            end
+            lastText = text          -- aralığın son rank'ı kalır (ör. 3/3)
+        end
+    end
+    flush(60)
+    for _, note in ipairs(ns.CD and ns.CD.talentNotes or {}) do
+        HM:Print("|cffaaaaaa• " .. note .. "|r")
+    end
+end
+
 HM:On("PLAYER_LEVEL_UP", function(_, level)
     level = tonumber(level) or HM:Level()
     -- Mage yeni büyüleri çift seviyelerde öğrenir.
@@ -98,6 +126,11 @@ local PROF_KIND = { ["Herbalism"] = "herb", ["Mining"] = "mine", ["Skinning"] = 
 
 local function scanProfessions()
     local out = {}
+    -- Forever: meslek puanları C_SkillInfo'dan okunur (Camp modülü; eski işlevler bu istemcide yok).
+    if HM.Camp and HM.Camp.Professions then
+        local ok, list = pcall(HM.Camp.Professions, HM.Camp)
+        if ok and type(list) == "table" and #list > 0 then return list end
+    end
     if GetProfessions and GetProfessionInfo then
         local list = { GetProfessions() }
         for i = 1, 6 do

@@ -87,6 +87,13 @@ function Bags:SupplyText()
         local low = w < (HM.db.waterMin or 10)
         parts[#parts + 1] = string.format("%sSu %d|r  Yemek %d", low and "|cffff6060" or "|cffffffff", w, f)
     end
+    -- Mage 20+: ışınlanma için Rune of Teleportation sayısı (3'ün altı kırmızı)
+    if ns.class == "MAGE" and HM:Level() >= 20 and HM.Guide and HM.Guide.ItemCount then
+        local okR, runes = pcall(HM.Guide.ItemCount, 17031)
+        if okR and runes then
+            parts[#parts + 1] = string.format("%sRune %d|r", runes < 3 and "|cffff6060" or "|cffffffff", runes)
+        end
+    end
     local ok, missing = pcall(self.MissingBuffs, self)
     if ok and missing and #missing > 0 then
         parts[#parts + 1] = "|cffff9040Eksik: " .. table.concat(missing, ", ") .. "|r"
