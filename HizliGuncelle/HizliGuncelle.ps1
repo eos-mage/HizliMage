@@ -2,19 +2,33 @@
 # Once CurseForge (anahtar varsa), yoksa GitHub: eklentilerin Forever surumunu indirir,
 # TOC'unu dogrular ve _forever_\Interface\AddOns klasorune kurar.
 #
+# HizliMage (github.com/eos-mage/HizliMage) icin ayri ve dikkatli bir adim vardir:
+#   - GitHub'daki surum bilgisayardakinden YENIYSE kurulur.
+#   - Ayniysa ya da ESKIYSE hicbir dosyaya dokunulmaz (eski surum yenisinin ustune yazilmaz).
+#   - Kurmadan once eski klasor HizliMage-Yedek altina yedeklenir (son 3 yedek tutulur).
+#   - Hicbir dosya silinmez; HizliMage_Veri klasorune ve WTF/SavedVariables'a dokunulmaz.
+#   - Indirilen paket eksikse ya da kopya dogrulanamazsa yedekten geri alinir.
+#
 # CurseForge anahtari: ayni klasordeki HizliGuncelle.key dosyasina tek satir olarak yapistir.
 # Kullanim:  HizliGuncelle.cmd (cift tik)   |   -Kontrol (sadece bak)   |   -Sadece Questie   |   -Sessiz
+#            -YalnizHizliMage (diger eklentileri atla, yalnizca HizliMage'e bak; birkac saniye surer)
+#            -Baslat (is bitince oyunu baslat; oyun zaten aciksa baslatmaz)
 param(
     [switch]$Kontrol,
     [string]$Sadece = "",
-    [switch]$Sessiz
+    [switch]$Sessiz,
+    [switch]$YalnizHizliMage,
+    [switch]$Baslat,
+    [string]$HmKaynak = ""      # yalnizca deneme icin: HizliMage.toc ve main.zip'in bulundugu adres
 )
 
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'    # ilerleme cubugu indirmeyi cok yavaslatir
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $WoW     = Split-Path -Parent $MyInvocation.MyCommand.Path
-$AddOns  = Join-Path $WoW '_forever_\Interface\AddOns'
+$Forever = Join-Path $WoW '_forever_'
+$AddOns  = Join-Path (Join-Path $Forever 'Interface') 'AddOns'
 $State   = Join-Path $WoW 'HizliGuncelle.json'
 $Log     = Join-Path $WoW 'HizliGuncelle.log'
 $KeyFile = Join-Path $WoW 'HizliGuncelle.key'
@@ -53,7 +67,7 @@ if (Test-Path $KeyFile) {
     }
 }
 # Anahtar yoksa ve ekran basindaysak: pencereye yapistir, dosyaya kaydedelim.
-if (-not $Key -and -not $Sessiz) {
+if (-not $Key -and -not $Sessiz -and -not $YalnizHizliMage) {
     Write-Host ""
     Write-Host "CurseForge API anahtarini buraya yapistir (sag tik ya da Ctrl+V) ve Enter'a bas." -ForegroundColor Yellow
     Write-Host "Yapistirma olmuyorsa: HizliAnahtar.cmd dosyasina cift tikla, Not Defteri acilir, Ctrl+V, kaydet, kapat." -ForegroundColor DarkGray
@@ -135,6 +149,128 @@ function GhAssetSec($rel) {
     return $zips[0]
 }
 
+# ---------------- HizliMage ----------------
+$HmRepo   = 'eos-mage/HizliMage'
+$HmBranch = 'main'
+$HmDir    = Join-Path $AddOns 'HizliMage'
+$HmYedek  = Join-Path $WoW 'HizliMage-Yedek'
+$HmTocUrl = "https://raw.githubusercontent.com/$HmRepo/$HmBranch/HizliMage/HizliMage.toc"
+$HmZipUrl = "https://github.com/$HmRepo/archive/refs/heads/$HmBranch.zip"
+if ($HmKaynak) { $HmTocUrl = "$HmKaynak/HizliMage.toc"; $HmZipUrl = "$HmKaynak/main.zip" }
+
+function TocSurum($metin) {
+    foreach ($s in ("$metin" -split "`r?`n")) {
+        if ($s -match '^\s*##\s*Version:\s*([0-9]+(\.[0-9]+){0,3})\s*$') { return $Matches[1] }
+    }
+    return $null
+}
+# -1: a daha eski, 0: ayni, 1: a daha yeni
+function SurumKiyas($a, $b) {
+    $x = @("$a".Split('.') | ForEach-Object { [int]$_ })
+    $y = @("$b".Split('.') | ForEach-Object { [int]$_ })
+    $n = [Math]::Max($x.Count, $y.Count)
+    for ($i = 0; $i -lt $n; $i++) {
+        $p = 0; if ($i -lt $x.Count) { $p = $x[$i] }
+        $q = 0; if ($i -lt $y.Count) { $q = $y[$i] }
+        if ($p -lt $q) { return -1 }
+        if ($p -gt $q) { return 1 }
+    }
+    return 0
+}
+function TocDosyalari($tocYolu) {
+    $liste = @()
+    foreach ($s in (Get-Content -Path $tocYolu)) {
+        $t = ("$s").Trim()
+        if ($t -and -not $t.StartsWith('#')) { $liste += $t }
+    }
+    return ,$liste
+}
+function HizliMageGuncelle {
+    $toc = Join-Path $HmDir 'HizliMage.toc'
+    if (-not (Test-Path $toc)) { Yaz "HizliMage : kurulu degil, atlandi ($HmDir)" 'Yellow'; return 'HizliMage yok' }
+    $yerel = TocSurum (Get-Content -Path $toc -Raw)
+    if (-not $yerel) { Yaz "HizliMage : bilgisayardaki surum okunamadi; dokunulmadi" 'Yellow'; return 'HizliMage okunamadi' }
+
+    $uzakToc = $null
+    try {
+        $yanit = Invoke-WebRequest -Uri $HmTocUrl -UseBasicParsing -TimeoutSec 20 -Headers @{ 'User-Agent' = 'HizliGuncelle' }
+        $uzakToc = $yanit.Content
+        if ($uzakToc -is [byte[]]) { $uzakToc = [Text.Encoding]::UTF8.GetString($uzakToc) }
+    } catch {
+        Yaz "HizliMage : GitHub'a ulasilamadi ($($_.Exception.Message)); dokunulmadi (yerel v$yerel)" 'Yellow'
+        return 'HizliMage ulasilamadi'
+    }
+    $uzak = TocSurum $uzakToc
+    if (-not $uzak) { Yaz "HizliMage : GitHub'daki surum okunamadi; dokunulmadi (yerel v$yerel)" 'Yellow'; return 'HizliMage okunamadi' }
+
+    $k = SurumKiyas $uzak $yerel
+    if ($k -eq 0) { Yaz "HizliMage : guncel (v$yerel)" 'DarkGray'; return 'HizliMage guncel' }
+    if ($k -lt 0) {
+        Yaz "HizliMage : bilgisayardaki surum daha yeni (yerel v$yerel, GitHub v$uzak); dokunulmadi" 'DarkGray'
+        return 'HizliMage yerel daha yeni'
+    }
+    if ($Kontrol) { Yaz "HizliMage : yeni surum var -> v$uzak (yerel v$yerel)" 'Green'; return 'HizliMage yeni' }
+
+    # --- indir ve dogrula (bu asamada bilgisayardaki eklentiye henuz dokunulmadi)
+    $ac  = Join-Path $Tmp 'HizliMage_ac'
+    $zip = Join-Path $Tmp 'HizliMage-main.zip'
+    if (Test-Path $ac) { Remove-Item $ac -Recurse -Force }
+    New-Item -ItemType Directory -Force -Path $ac | Out-Null
+    Yaz "HizliMage : v$uzak indiriliyor (yerel v$yerel)" 'White'
+    Invoke-WebRequest -Uri $HmZipUrl -OutFile $zip -UseBasicParsing -TimeoutSec 120 -Headers @{ 'User-Agent' = 'HizliGuncelle' }
+    Expand-Archive -Path $zip -DestinationPath $ac -Force
+    $yeniToc = Get-ChildItem -Path $ac -Recurse -Filter 'HizliMage.toc' | Where-Object { $_.Directory.Name -eq 'HizliMage' } | Select-Object -First 1
+    if (-not $yeniToc) { throw "indirilen pakette HizliMage klasoru ya da HizliMage.toc yok" }
+    $kaynak   = $yeniToc.Directory.FullName
+    $zipSurum = TocSurum (Get-Content -Path $yeniToc.FullName -Raw)
+    if (-not $zipSurum) { throw "indirilen paketteki surum okunamadi" }
+    if ((SurumKiyas $zipSurum $yerel) -le 0) {
+        Yaz "HizliMage : indirilen paket (v$zipSurum) bilgisayardakinden (v$yerel) yeni degil; dokunulmadi" 'Yellow'
+        return 'HizliMage yerel daha yeni'
+    }
+    $eksik = @()
+    foreach ($d in (TocDosyalari $yeniToc.FullName)) {
+        $p = Join-Path $kaynak $d
+        if (-not (Test-Path $p)) { $eksik += $d }
+        elseif ((Get-Item $p).Length -lt 1) { $eksik += "$d (bos)" }
+    }
+    if ($eksik.Count -gt 0) { throw "indirilen pakette eksik dosya var, kurulmadi: $($eksik -join ', ')" }
+
+    # --- yedekle
+    New-Item -ItemType Directory -Force -Path $HmYedek | Out-Null
+    $yedek = Join-Path $HmYedek ("HizliMage-v{0}-{1:yyyyMMdd-HHmmss}" -f $yerel, (Get-Date))
+    Copy-Item -Path $HmDir -Destination $yedek -Recurse -Force
+    if (-not (Test-Path (Join-Path $yedek 'HizliMage.toc'))) { throw "yedek alinamadi ($yedek); kurulmadi" }
+
+    # --- uzerine kopyala (hicbir dosya silinmez) ve dogrula; olmazsa yedekten geri al
+    try {
+        Copy-Item -Path (Join-Path $kaynak '*') -Destination $HmDir -Recurse -Force
+        $son = TocSurum (Get-Content -Path (Join-Path $HmDir 'HizliMage.toc') -Raw)
+        if ($son -ne $zipSurum) { throw "kopyadan sonra surum v$son (beklenen v$zipSurum)" }
+        foreach ($d in (TocDosyalari (Join-Path $HmDir 'HizliMage.toc'))) {
+            $a = Join-Path $kaynak $d
+            $b = Join-Path $HmDir $d
+            if (-not (Test-Path $b)) { throw "kopyalanmayan dosya: $d" }
+            if ((Get-Item $a).Length -ne (Get-Item $b).Length) { throw "boyutu tutmayan dosya: $d" }
+        }
+    } catch {
+        Yaz "HizliMage : kurulum dogrulanamadi ($($_.Exception.Message)); yedekten geri aliniyor" 'Red'
+        Copy-Item -Path (Join-Path $yedek '*') -Destination $HmDir -Recurse -Force
+        Yaz "HizliMage : v$yerel geri yuklendi ($yedek)" 'Yellow'
+        return 'HizliMage hata (geri alindi)'
+    }
+
+    # --- eski yedekler: en yeni 3 kalsin
+    $eskiler = @(Get-ChildItem -Path $HmYedek -Directory | Sort-Object Name -Descending | Select-Object -Skip 3)
+    foreach ($e in $eskiler) { Remove-Item $e.FullName -Recurse -Force -ErrorAction SilentlyContinue }
+
+    Yaz "HizliMage : kuruldu -> v$zipSurum (onceki v$yerel yedegi: $yedek)" 'Green'
+    if (Get-Process -Name 'Wow' -ErrorAction SilentlyContinue) {
+        Yaz "HizliMage : oyun acik. Yeni surumun tamami icin oyunu tamamen kapatip ac (/reload yeni dosyalari gormez)." 'Yellow'
+    }
+    return 'HizliMage kuruldu'
+}
+
 # ---------------- ortak ----------------
 function ForeverVar($klasor) {
     foreach ($t in (Get-ChildItem -Path $klasor -Recurse -Filter '*.toc' -ErrorAction SilentlyContinue)) {
@@ -166,10 +302,12 @@ New-Item -ItemType Directory -Force -Path $Tmp | Out-Null
 $durum = @{}
 if (Test-Path $State) { try { (Get-Content $State -Raw | ConvertFrom-Json).PSObject.Properties | ForEach-Object { $durum[$_.Name] = $_.Value } } catch { } }
 
-Yaz "=== HizliGuncelle basladi ($AddOns) - kaynak: $(if ($Key) { 'CurseForge + GitHub' } else { 'GitHub (CurseForge anahtari yok: HizliGuncelle.key)' })" 'Cyan'
-if ($Key) { CfForeverType }
+if ($YalnizHizliMage) { Yaz "=== HizliGuncelle basladi ($AddOns) - yalnizca HizliMage" 'Cyan' }
+else { Yaz "=== HizliGuncelle basladi ($AddOns) - kaynak: $(if ($Key) { 'CurseForge + GitHub' } else { 'GitHub (CurseForge anahtari yok: HizliGuncelle.key)' })" 'Cyan' }
+if ($Key -and -not $YalnizHizliMage) { CfForeverType }
 $ozet = @()
 foreach ($e in $Paket) {
+    if ($YalnizHizliMage) { break }
     if ($Sadece -and $e.name -ne $Sadece) { continue }
     $ad = $e.name
     $kurulu = Test-Path (Join-Path $AddOns $ad)
@@ -220,7 +358,21 @@ foreach ($e in $Paket) {
         Yaz "$ad : yalnizca CurseForge'da; anahtar yoksa elle indir" 'Yellow'
     }
 }
-$durum | ConvertTo-Json | Set-Content -Path $State -Encoding UTF8
+if (-not $YalnizHizliMage) { $durum | ConvertTo-Json | Set-Content -Path $State -Encoding UTF8 }
+
+# HizliMage: -Sadece ile baska bir eklenti secildiyse atlanir
+if (-not $Sadece -or $Sadece -eq 'HizliMage') {
+    try { $ozet += (HizliMageGuncelle) }
+    catch { Yaz "HizliMage : HATA $($_.Exception.Message) (eklentiye dokunulmadi ya da yedekten geri alindi)" 'Red'; $ozet += 'HizliMage hata' }
+}
+
 Yaz "=== Bitti. $($ozet -join ' | ')" 'Cyan'
-Yaz "Oyundaysan /reload yeterli. HizliMage'i Claude dogrudan gunceller." 'Gray'
+if (-not $YalnizHizliMage) { Yaz "Oyundaysan /reload yeterli; yeni dosya gelen eklentiler icin oyunu kapatip ac." 'Gray' }
+
+if ($Baslat) {
+    $exe = Join-Path $Forever 'Wow.exe'
+    if (Get-Process -Name 'Wow' -ErrorAction SilentlyContinue) { Yaz "Oyun zaten acik; yeniden baslatilmadi." 'DarkGray' }
+    elseif (Test-Path $exe) { Yaz "Oyun baslatiliyor: $exe" 'Gray'; Start-Process -FilePath $exe -WorkingDirectory $Forever }
+    else { Yaz "Wow.exe bulunamadi: $exe" 'Red' }
+}
 if (-not $Sessiz) { Read-Host 'Kapatmak icin Enter' | Out-Null }
